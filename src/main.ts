@@ -1,5 +1,5 @@
 /**
- * the-peeple エントリーポイント (Issue #9 テンプレ初期版)。
+ * the-peeple エントリーポイント (Issues #9, #10)。
  *
  * - 1 個の `Application` (PixiJS) を初期化。スマホ縦比率 (9:16) で固定。
  * - 1 個の `KeyboardManager` を window に attach (全シーンで共有)。
@@ -153,9 +153,11 @@ async function bootstrap(): Promise<void> {
         break
       case 'play':
         activeUnsub = playScene.attachInputs(keyboard, touch, () => {
-          // Esc でタイトルへ戻る。
-          setActiveScene('title')
-          void sceneManager.navigateTo('title', 800)
+          // Esc はギブアップ扱いで Result へ遷移する (Issue #10)。
+          // スコアは未実装のため undefined (score 行は非表示)。
+          resultScene.setResult({ kind: 'gameover' })
+          setActiveScene('result')
+          void sceneManager.navigateTo('result', 800)
         })
         break
       case 'result':
@@ -169,10 +171,9 @@ async function bootstrap(): Promise<void> {
     void sceneManager.navigateTo('play', 800)
   }
 
-  // Result への遷移は後続 Issue で実装する。常駐済の resultScene に対しては
-  // `resultScene.setResult({ kind, score })` → `setActiveScene('result')` →
-  // `sceneManager.navigateTo('result', 800)` の順で呼ぶだけで良い。
-  // 現在の golden path は: Title → Play → (Esc) → Title。
+  // ミニマル経路: Title → Play → Result (Esc) → Title (Esc) / Play (R)。
+  // Play 中の Esc はギブアップ扱いで resultScene.setResult({ kind: 'gameover' }) →
+  // navigateTo('result') へ送る。Result 側は R/Enter で Play、Esc で Title へ戻す。
 }
 
 void bootstrap()
