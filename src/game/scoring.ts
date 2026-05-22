@@ -78,19 +78,13 @@ export function evaluateAssignment(
     applied.push(r)
     total += r.scoreDelta
   } else {
-    // 片方だけ空いている = 隣1つ空けた。
-    const oneNeighborEmpty =
-      (leftOccupied && !rightOccupied) || (!leftOccupied && rightOccupied)
-    if (oneNeighborEmpty) {
-      const r = applyRule('NEIGHBOR_EMPTY', urinalId)
-      applied.push(r)
-      total += r.scoreDelta
-    } else if (leftOccupied || rightOccupied) {
-      // 同列タブー: 直接隣に人がいる (oneNeighborEmpty との排他)。
-      const r = applyRule('SAME_COLUMN_TABOO', urinalId)
-      applied.push(r)
-      total += r.scoreDelta
-    }
+    // 直接隣（distance=1）に人がいる = タブー。
+    // NEIGHBOR_EMPTY は「1つ空けた (distance ≥ 2)」が理想だが
+    // 4台構成では両隣が必ず distance=1 のため適用対象なし。
+    // 直接隣接ペナルティとして SAME_COLUMN_TABOO を適用する。
+    const r = applyRule('SAME_COLUMN_TABOO', urinalId)
+    applied.push(r)
+    total += r.scoreDelta
   }
 
   return { scoreDelta: total, rules: applied }

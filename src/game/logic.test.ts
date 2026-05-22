@@ -14,6 +14,7 @@ import {
   queuePosition,
   QUEUE_MAX,
 } from './logic'
+import { evaluateAssignment } from './scoring'
 import type { Char, Urinal } from './types'
 
 // ---------------------------------------------------------------------------
@@ -242,5 +243,102 @@ describe('queuePosition', () => {
 
   it('index が増えるほど Y が減る (上に並ぶ)', () => {
     expect(queuePosition(1).y).toBeLessThan(queuePosition(0).y)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// updateGame — anger 満タンミス
+// ---------------------------------------------------------------------------
+describe('updateGame — anger 満タン退場', () => {
+  let chars: Char[]
+  let urinals: Urinal[]
+
+  beforeEach(() => {
+    resetCharIdCounter()
+    urinals = createUrinals(640)
+    chars = [spawnChar()]
+    chars[0].state = 'QUEUING'
+    chars[0].anger = 99.999 // 次フレームで必ず 100 になる
+  })
+
+  it('anger が 100 に達するとミスが増える', () => {
+    const stats = createGameStats()
+    const { missCount } = updateGame(chars, urinals, stats, 100)
+    expect(missCount).toBeGreaterThanOrEqual(1)
+    expect(stats.misses).toBeGreaterThanOrEqual(1)
+  })
+
+  it('anger 満タン退場キャラはスコアを加算しない', () => {
+    const stats = createGameStats()
+    updateGame(chars, urinals, stats, 100)
+    // 退場キャラが画面外に出るまで追加フレームを流す。
+    for (let i = 0; i < 10; i++) {
+      updateGame(chars, urinals, stats, 1000)
+    }
+    expect(stats.score).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// evaluateAssignment — 心理スコアリングルール
+// ---------------------------------------------------------------------------
+describe('evaluateAssignment — スコアリングルール', () => {
+  let urinals: Urinal[]
+
+  beforeEach(() => {
+    urinals = createUrinals(640)
+  })
+
+  it('END_URINAL: 端の便器 (id=0) に誰もいない状態で割当 → END_URINAL + NO_NEIGHBOR', () => {
+    urinals[0].state = 'OCCUPIED'
+    const { rules } = evaluateAssignment(0, urinals)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('END_URINAL')
+    expect(ids).toContain('NO_NEIGHBOR')
+  })
+
+  it('NO_NEIGHBOR: 両隣が空の便器に割当 → NO_NEIGHBOR のみ (SAME_COLUMN_TABOO なし)', () => {
+    // 便器1 (中間) に割当、0/2/3 は空。
+    urinals[1].state = 'OCCUPIED'
+    const { rules } = evaluateAssignment(1, urinals)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('NO_NEIGHBOR')
+    expect(ids).not.toContain('SAME_COLUMN_TABOO')
+  })
+
+  it('NEIGHBOR_EMPTY: 片方だけ隣が占有 → SAME_COLUMN_TABOO (4台構成では distance=1 のためタブー)', () => {
+    // 便器1 を先に占有した状態で便器2 を割当（直接隣）。
+    urinals[1].state = 'OCCUPIED'
+    urinals[1].occupantId = 99
+    urinals[2].state = 'OCCUPIED'
+    const { rules } = evaluateAssignment(2, urinals)
+    const ids = rules.map(r => r.ruleId)
+    // 4台構成では distance=1 の直接隣接なので SAME_COLUMN_TABOO。
+    expect(ids).toContain('SAME_COLUMN_TABOO')
+    expect(ids).not.toContain('NEIGHBOR_EMPTY')
+  })
+
+  it('SAME_COLUMN_TABOO: 直接隣に人がいる → SAME_COLUMN_TABOO', () => {
+    // 便器0を占有、便器1に割当。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[1].state = 'OCCUPIED'
+    const { rules } = evaluateAssignment(1, urinals)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('SAME_COLUMN_TABOO')
+    expect(ids).not.toContain('NEIGHBOR_EMPTY')
+  })
+
+  it('FORCED_ADJACENT: 両隣が埋まっていても FORCED_ADJACENT でペナルティなし', () => {
+    // 便器0/2 を占有、便器1 に割当。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[2].state = 'OCCUPIED'
+    urinals[2].occupantId = 100
+    urinals[1].state = 'OCCUPIED'
+    const { rules, scoreDelta } = evaluateAssignment(1, urinals)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('FORCED_ADJACENT')
+    expect(scoreDelta).toBe(0)
   })
 })
