@@ -53,6 +53,7 @@ import {
   ENTRANCE_X,
   ENTRANCE_Y,
 } from '../game/logic'
+import { charTypeToLabel } from '../game/charTypeToLabel'
 
 // ---------------------------------------------------------------------------
 // 定数
@@ -94,12 +95,14 @@ interface UrinalEntry {
   id: number
   gfx: Graphics
   label: Text
+  numLabel: Text
 }
 
 interface CharEntry {
   id: number
   gfx: Graphics
   angerBar: Graphics
+  typeLabel: Text
 }
 
 // ---------------------------------------------------------------------------
@@ -197,6 +200,7 @@ export class PlayScene extends Container {
     for (const entry of this.charGfxMap.values()) {
       entry.gfx.destroy()
       entry.angerBar.destroy()
+      entry.typeLabel.destroy()
     }
     this.charGfxMap.clear()
   }
@@ -228,7 +232,22 @@ export class PlayScene extends Container {
       label.anchor.set(0.5)
       this.urinalLayer.addChild(label)
 
-      this.urinalGfxMap.set(u.id, { id: u.id, gfx, label })
+      // 便器番号ラベル (常時表示)。
+      const numLabel = new Text({
+        text: String(u.id),
+        style: {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 10,
+          fill: UI_TEXT_DIM,
+          align: 'center',
+        },
+      })
+      numLabel.anchor.set(0.5)
+      numLabel.x = u.x
+      numLabel.y = u.y - u.height / 2 - 8
+      this.urinalLayer.addChild(numLabel)
+
+      this.urinalGfxMap.set(u.id, { id: u.id, gfx, label, numLabel })
       this.redrawUrinal(u)
     }
   }
@@ -409,9 +428,21 @@ export class PlayScene extends Container {
     if (!entry) {
       const gfx = new Graphics()
       const angerBar = new Graphics()
+      const typeLabel = new Text({
+        text: charTypeToLabel(char.type),
+        style: {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 10,
+          fontWeight: 'bold',
+          fill: UI_TEXT_ON_DARK,
+          align: 'center',
+        },
+      })
+      typeLabel.anchor.set(0.5)
       this.charLayer.addChild(gfx)
       this.charLayer.addChild(angerBar)
-      entry = { id: char.id, gfx, angerBar }
+      this.charLayer.addChild(typeLabel)
+      entry = { id: char.id, gfx, angerBar, typeLabel }
       this.charGfxMap.set(char.id, entry)
     }
     return entry
@@ -422,7 +453,7 @@ export class PlayScene extends Container {
 
     for (const char of this.chars) {
       const entry = this.getOrCreateCharEntry(char)
-      const { gfx, angerBar } = entry
+      const { gfx, angerBar, typeLabel } = entry
 
       // キャラ本体。
       const baseColor = CHAR_COLORS[char.type] ?? CHAR_NORMAL
@@ -438,8 +469,10 @@ export class PlayScene extends Container {
         .fill({ color, alpha: 0.9 })
         .stroke({ color: CHAR_OUTLINE, width: 1.5, alpha: 0.7 })
 
-      // 客タイプのイニシャル。
-      // (テキストを毎フレーム生成するのは重いので Graphics のみとし文字省略)
+      // 客タイプのイニシャルラベル (毎フレーム text.text だけ更新)。
+      typeLabel.text = charTypeToLabel(char.type)
+      typeLabel.x = char.x
+      typeLabel.y = char.y
 
       // 苛立ちゲージ (キャラ頭上の小さいバー)。
       angerBar.clear()
@@ -464,6 +497,7 @@ export class PlayScene extends Container {
       if (!aliveIds.has(id)) {
         entry.gfx.destroy()
         entry.angerBar.destroy()
+        entry.typeLabel.destroy()
         this.charGfxMap.delete(id)
       }
     }
