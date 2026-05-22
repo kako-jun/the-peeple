@@ -11,6 +11,34 @@
 ベースに、`elevator-gurl` 経由で持ち込んでいる (落ち物パズル系のロジックは
 持ち込まず、SceneManager / Keyboard / Touch / Sound の汎用骨格だけを流用)。
 
+## ゲームルール
+
+- 制限時間 **90 秒**、ミス **5 回**でゲームオーバー
+- 便器をタップして客を誘導する
+- 待機列が **6 人**を超えるとミス、**苛立ちゲージ (anger)** が満タンになってもミス
+- `Esc` キーでギブアップ → 結果画面へ
+
+### 心理スコアリングルール
+
+| ルール            | 説明                         | 点数 |
+| ----------------- | ---------------------------- | ---- |
+| END_URINAL        | 端の便器を使用               | +10  |
+| NO_NEIGHBOR       | 完全孤立 (両隣に誰もいない)  | +20  |
+| NEIGHBOR_EMPTY    | 片方だけ隣を空けた           | +5   |
+| SAME_COLUMN_TABOO | 直接隣に人がいる             | -15  |
+| FORCED_ADJACENT   | 両隣が埋まっていて選択肢なし | ±0   |
+
+### 客タイプ
+
+| タイプ      | 特徴                              | 解放タイミング |
+| ----------- | --------------------------------- | -------------- |
+| NORMAL      | 標準                              | ゲーム開始から |
+| RUSHER      | 急ぎ客。anger 上昇速度 3×         | 30 秒後        |
+| SHY         | 恥ずかしがり屋。anger 上昇速度 2× | 60 秒後        |
+| CLEAN_FREAK | 潔癖症。anger 上昇速度 1.5×       | 60 秒後        |
+| GROUP       | 団体客。anger 上昇速度が低い      | 60 秒後        |
+| DRUNK       | 酔っぱらい。移動が遅い            | 60 秒後        |
+
 ## 開発
 
 ```sh
@@ -18,4 +46,19 @@ npm install
 npm run dev      # http://localhost:3000
 npm run build    # tsc + vite build
 npm test         # vitest
+```
+
+## アーキテクチャ
+
+```
+src/
+  game/
+    types.ts      # 全型定義 (Urinal / Char / CharType / CharState / GameStats)
+    logic.ts      # ゲームロジック (updateGame / spawnChar / assignToUrinal)
+    scoring.ts    # 心理スコアリング (evaluateAssignment)
+    logic.test.ts # ユニットテスト (vitest)
+  scenes/
+    PlayScene.ts   # プレイ画面 (HUD / anger 表示 / ゲームオーバー判定)
+    ResultScene.ts # 結果画面 (スコア / ミス / 適用ルール一覧 / 総評)
+  main.ts          # エントリポイント (シーン遷移配線)
 ```
