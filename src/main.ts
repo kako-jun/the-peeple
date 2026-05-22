@@ -13,6 +13,8 @@ import { SoundManager } from './audio/SoundManager'
 import { MuteButton } from './audio/MuteButton'
 import { LocalStorageAdapter } from './game/StorageAdapter'
 import { UI_BG } from './constants/colors'
+import { parseUrlQuery } from './debug/urlQuery'
+import type { GameStats } from './game/types'
 import './index.css'
 
 const VIEW_W = 360
@@ -143,8 +145,31 @@ async function bootstrap(): Promise<void> {
   sceneManager.registerScene('play', SCENE_TRANSFORMS.play)
   sceneManager.registerScene('result', SCENE_TRANSFORMS.result)
   sceneManager.registerScene('lineRush', SCENE_TRANSFORMS.lineRush)
-  void sceneManager.navigateTo('title', 0)
-  setActiveScene('title')
+
+  // URL クエリによるデバッグ直接起動 (Issue #30)。
+  const urlQuery = parseUrlQuery()
+  if (urlQuery.scene === 'play') {
+    const difficulty = urlQuery.difficulty ?? 'NORMAL'
+    void sceneManager.navigateTo('play', 0)
+    startGame({ mode: 'STAND_OFF', difficulty })
+  } else if (urlQuery.scene === 'result') {
+    const dummyStats: GameStats = {
+      score: 999,
+      misses: 3,
+      appliedRules: [],
+      elapsed: 60000,
+      maxAnger: 0,
+    }
+    resultScene.setResult({ kind: 'gameover', stats: dummyStats })
+    void sceneManager.navigateTo('result', 0)
+    setActiveScene('result')
+  } else if (urlQuery.scene === 'lineRush') {
+    void sceneManager.navigateTo('lineRush', 0)
+    setActiveScene('lineRush')
+  } else {
+    void sceneManager.navigateTo('title', 0)
+    setActiveScene('title')
+  }
 
   let isPlayActive = false
   let isLineRushActive = false
