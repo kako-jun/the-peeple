@@ -258,7 +258,7 @@ export function assignToUrinal(
   urinal.occupantId = char.id
 
   // 心理スコアリング。
-  const { scoreDelta, rules } = evaluateAssignment(urinalId, urinals)
+  const { scoreDelta, rules } = evaluateAssignment(urinalId, urinals, char)
   stats.score += scoreDelta
   stats.appliedRules.push(...rules)
 
