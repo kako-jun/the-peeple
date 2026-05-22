@@ -342,3 +342,31 @@ describe('evaluateAssignment — スコアリングルール', () => {
     expect(scoreDelta).toBe(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// spawnChar with Difficulty (#18)
+// ---------------------------------------------------------------------------
+describe('spawnChar - Difficulty', () => {
+  beforeEach(() => {
+    resetCharIdCounter()
+  })
+
+  it('NORMAL 難易度ではデフォルトと同じ型が返る', () => {
+    const char = spawnChar(0, 'NORMAL')
+    expect(['NORMAL', 'RUSHER', 'GROUP', 'DRUNK']).toContain(char.type)
+  })
+
+  it('HARD 難易度でも有効な CharType が返る', () => {
+    const char = spawnChar(30000, 'HARD')
+    expect(['NORMAL', 'RUSHER', 'GROUP', 'DRUNK']).toContain(char.type)
+  })
+
+  it('NORMAL 難易度で経過0msは常に NORMAL タイプ', () => {
+    // 乱数に依存しない序盤 — 10回試行して全て NORMAL であることを確認。
+    for (let i = 0; i < 10; i++) {
+      resetCharIdCounter()
+      const char = spawnChar(0, 'NORMAL')
+      expect(char.type).toBe('NORMAL')
+    }
+  })
+})
