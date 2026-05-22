@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   loadHighscore,
   saveHighscore,
@@ -51,6 +51,14 @@ describe('saveHighscore', () => {
     const storage = makeStorage()
     saveHighscore(storage, 42)
     expect(loadHighscore(storage)).toBe(42)
+  })
+
+  it('同じスコアで2回呼ばれても setItem は2回呼ばれる（呼び出し制御は呼び出し元の責務）', () => {
+    const storage = makeStorage()
+    const spy = vi.spyOn(storage, 'setItem')
+    saveHighscore(storage, 10)
+    saveHighscore(storage, 10)
+    expect(spy).toHaveBeenCalledTimes(2)
   })
 })
 
