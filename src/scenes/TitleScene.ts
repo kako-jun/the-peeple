@@ -28,7 +28,7 @@ import {
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
-import type { IStorageAdapter } from '../game/StorageAdapter'
+import type { StorageAdapter } from '../game/StorageAdapter'
 import { loadHighscore } from '../game/highscore'
 
 // ---------------------------------------------------------------------------
@@ -37,12 +37,6 @@ import { loadHighscore } from '../game/highscore'
 export interface TitleSelection {
   mode: GameMode
   difficulty: Difficulty
-}
-
-export interface TitleSceneOptions {
-  onStart: (sel: TitleSelection) => void
-  soundManager?: SoundManager | null
-  storage?: IStorageAdapter
 }
 
 const START_BTN_W = 144
@@ -120,15 +114,16 @@ export class TitleScene extends Container {
   private diffEntries: ToggleEntry<Difficulty>[] = []
   private startEntry!: StartEntry
   private subtitleText!: Text
+  private bestText: Text | null = null
 
   private readonly onStart: (sel: TitleSelection) => void
   private readonly soundManager: SoundManager | null
-  private readonly storage: IStorageAdapter | undefined
+  private readonly storage: StorageAdapter | undefined
 
   constructor(
     onStart: (sel: TitleSelection) => void,
     soundManager: SoundManager | null = null,
-    storage?: IStorageAdapter
+    storage?: StorageAdapter
   ) {
     super()
     this.onStart = onStart
@@ -373,7 +368,41 @@ export class TitleScene extends Container {
     bestText.anchor.set(0.5)
     bestText.x = 0
     bestText.y = START_BTN_Y + START_BTN_H / 2 + 16
+    this.bestText = bestText
     this.addChild(bestText)
+  }
+
+  /** タイトルへ戻るたびに呼ぶ。BEST 表示を最新値に更新する。 */
+  updateBestScore(storage: StorageAdapter): void {
+    const best = loadHighscore(storage)
+    if (best === 0) {
+      // スコアがなければ非表示にする
+      if (this.bestText) {
+        this.removeChild(this.bestText)
+        this.bestText.destroy()
+        this.bestText = null
+      }
+      return
+    }
+
+    if (!this.bestText) {
+      const t = new Text({
+        text: `BEST: ${best}`,
+        style: {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 12,
+          fill: UI_TEXT_DIM,
+          align: 'center',
+        },
+      })
+      t.anchor.set(0.5)
+      t.x = 0
+      t.y = START_BTN_Y + START_BTN_H / 2 + 16
+      this.bestText = t
+      this.addChild(t)
+    } else {
+      this.bestText.text = `BEST: ${best}`
+    }
   }
 
   // -------------------------------------------------------------------------

@@ -107,6 +107,7 @@ async function bootstrap(): Promise<void> {
   const lineRushScene = new LineRushScene({
     soundManager: sound,
     onTitle: () => {
+      titleScene.updateBestScore(storage)
       setActiveScene('title')
       void sceneManager.navigateTo('title', 800)
     },
@@ -129,6 +130,7 @@ async function bootstrap(): Promise<void> {
       startGame(sel)
     },
     onTitle: () => {
+      titleScene.updateBestScore(storage)
       setActiveScene('title')
       void sceneManager.navigateTo('title', 800)
     },

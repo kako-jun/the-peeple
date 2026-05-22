@@ -21,7 +21,7 @@ import {
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { GameStats } from '../game/types'
-import type { IStorageAdapter } from '../game/StorageAdapter'
+import type { StorageAdapter } from '../game/StorageAdapter'
 import { isNewRecord, saveHighscore } from '../game/highscore'
 
 export type ResultKind = 'gameover' | 'clear'
@@ -30,7 +30,7 @@ export interface ResultSceneOptions {
   onRestart: () => void
   onTitle: () => void
   soundManager?: SoundManager | null
-  storage?: IStorageAdapter
+  storage?: StorageAdapter
 }
 
 const HEADLINE_TEXT: Record<ResultKind, string> = {

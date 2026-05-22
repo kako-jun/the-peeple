@@ -3,12 +3,12 @@
  * localStorage が使えない環境（SSR / プライベートモード）でも落ちない。
  */
 
-export interface IStorageAdapter {
+export interface StorageAdapter {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
 }
 
-export class LocalStorageAdapter implements IStorageAdapter {
+export class LocalStorageAdapter implements StorageAdapter {
   getItem(key: string): string | null {
     try {
       return localStorage.getItem(key)

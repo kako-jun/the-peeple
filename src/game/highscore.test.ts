@@ -5,9 +5,9 @@ import {
   isNewRecord,
   HIGHSCORE_KEY,
 } from './highscore'
-import type { IStorageAdapter } from './StorageAdapter'
+import type { StorageAdapter } from './StorageAdapter'
 
-function makeStorage(initial: Record<string, string> = {}): IStorageAdapter {
+function makeStorage(initial: Record<string, string> = {}): StorageAdapter {
   const store = { ...initial }
   return {
     getItem: (key: string) => store[key] ?? null,
@@ -37,7 +37,7 @@ describe('loadHighscore', () => {
 describe('saveHighscore', () => {
   it('スコアを文字列として保存する', () => {
     const store: Record<string, string> = {}
-    const storage: IStorageAdapter = {
+    const storage: StorageAdapter = {
       getItem: key => store[key] ?? null,
       setItem: (key, value) => {
         store[key] = value
@@ -45,6 +45,12 @@ describe('saveHighscore', () => {
     }
     saveHighscore(storage, 99)
     expect(store[HIGHSCORE_KEY]).toBe('99')
+  })
+
+  it('saveHighscore → loadHighscore の往復で同じ値を返す', () => {
+    const storage = makeStorage()
+    saveHighscore(storage, 42)
+    expect(loadHighscore(storage)).toBe(42)
   })
 })
 
