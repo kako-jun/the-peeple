@@ -28,19 +28,22 @@ import {
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
+import type { IStorageAdapter } from '../game/StorageAdapter'
+import { loadHighscore } from '../game/highscore'
 
 // ---------------------------------------------------------------------------
-// 公開型
+// ボタン定数
 // ---------------------------------------------------------------------------
-
 export interface TitleSelection {
   mode: GameMode
   difficulty: Difficulty
 }
 
-// ---------------------------------------------------------------------------
-// ボタン定数
-// ---------------------------------------------------------------------------
+export interface TitleSceneOptions {
+  onStart: (sel: TitleSelection) => void
+  soundManager?: SoundManager | null
+  storage?: IStorageAdapter
+}
 
 const START_BTN_W = 144
 const START_BTN_H = 52
@@ -120,19 +123,23 @@ export class TitleScene extends Container {
 
   private readonly onStart: (sel: TitleSelection) => void
   private readonly soundManager: SoundManager | null
+  private readonly storage: IStorageAdapter | undefined
 
   constructor(
     onStart: (sel: TitleSelection) => void,
-    soundManager: SoundManager | null = null
+    soundManager: SoundManager | null = null,
+    storage?: IStorageAdapter
   ) {
     super()
     this.onStart = onStart
     this.soundManager = soundManager
+    this.storage = storage
 
     this.buildLogo()
     this.buildModeSection()
     this.buildDifficultySection()
     this.buildStartButton()
+    this.buildBestScore()
 
     this.eventMode = 'static'
     this.cursor = 'default'
@@ -347,6 +354,26 @@ export class TitleScene extends Container {
     this.addChild(g)
     this.addChild(t)
     this.drawStartButton()
+  }
+
+  private buildBestScore(): void {
+    if (!this.storage) return
+    const best = loadHighscore(this.storage)
+    if (best === 0) return
+
+    const bestText = new Text({
+      text: `BEST: ${best}`,
+      style: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: 12,
+        fill: UI_TEXT_DIM,
+        align: 'center',
+      },
+    })
+    bestText.anchor.set(0.5)
+    bestText.x = 0
+    bestText.y = START_BTN_Y + START_BTN_H / 2 + 16
+    this.addChild(bestText)
   }
 
   // -------------------------------------------------------------------------

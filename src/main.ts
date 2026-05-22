@@ -11,6 +11,7 @@ import { KeyboardManager } from './input/KeyboardManager'
 import { TouchManager } from './input/TouchManager'
 import { SoundManager } from './audio/SoundManager'
 import { MuteButton } from './audio/MuteButton'
+import { LocalStorageAdapter } from './game/StorageAdapter'
 import { UI_BG } from './constants/colors'
 import './index.css'
 
@@ -49,6 +50,9 @@ async function bootstrap(): Promise<void> {
   // SoundManager。
   const sound = new SoundManager()
   sound.loadPersisted()
+
+  // StorageAdapter。
+  const storage = new LocalStorageAdapter()
   let unlocked = false
   const unlockOnce = (): void => {
     if (unlocked) return
@@ -76,7 +80,8 @@ async function bootstrap(): Promise<void> {
   // Title シーン。
   const titleScene = new TitleScene(
     (sel: TitleSelection) => startGame(sel),
-    sound
+    sound,
+    storage
   )
   titleScene.x = SCENE_TRANSFORMS.title.x
   titleScene.y = SCENE_TRANSFORMS.title.y
@@ -113,6 +118,7 @@ async function bootstrap(): Promise<void> {
   // Result シーン (常駐)。
   const resultScene = new ResultScene({
     soundManager: sound,
+    storage,
     onRestart: () => {
       // タイトルの現在選択値で再挑戦。
       // タイトルに戻らずに同じ設定で即スタートするユーザー体験を意図している。
