@@ -85,9 +85,8 @@ export function evaluateAssignment(
       const r = applyRule('NEIGHBOR_EMPTY', urinalId)
       applied.push(r)
       total += r.scoreDelta
-    }
-    // 同列タブー: 直接隣に人がいる。
-    if (leftOccupied || rightOccupied) {
+    } else if (leftOccupied || rightOccupied) {
+      // 同列タブー: 直接隣に人がいる (oneNeighborEmpty との排他)。
       const r = applyRule('SAME_COLUMN_TABOO', urinalId)
       applied.push(r)
       total += r.scoreDelta

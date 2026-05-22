@@ -31,6 +31,7 @@ export interface Urinal {
  * - NORMAL    : 普通の客。
  * - RUSHER    : 急ぎ客。待ち時間が短く、歩くのが速い。
  * - GROUP     : 団体客 (2人セット)。隣同士を嫌がらない。
+ *               TODO: scoring.ts の隣接ペナルティ免除は未実装 (#16 follow-up)。
  * - DRUNK     : 酔っぱらい。ランダムな便器へ突撃しようとする。
  */
 export type CharType = 'NORMAL' | 'RUSHER' | 'GROUP' | 'DRUNK'

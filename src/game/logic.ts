@@ -190,7 +190,7 @@ export function updateGame(
 
   // 退室完了キャラを削除。
   for (let i = chars.length - 1; i >= 0; i--) {
-    if (chars[i].state === 'LEAVING' && chars[i].x === EXIT_X) {
+    if (chars[i].state === 'LEAVING' && chars[i].x <= EXIT_X) {
       chars.splice(i, 1)
     }
   }

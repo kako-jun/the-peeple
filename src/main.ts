@@ -52,9 +52,9 @@ async function bootstrap(): Promise<void> {
     unlocked = true
     sound.unlock()
   }
-  window.addEventListener('pointerdown', unlockOnce, { once: false })
-  window.addEventListener('keydown', unlockOnce, { once: false })
-  window.addEventListener('touchstart', unlockOnce, { once: false })
+  window.addEventListener('pointerdown', unlockOnce, { once: true })
+  window.addEventListener('keydown', unlockOnce, { once: true })
+  window.addEventListener('touchstart', unlockOnce, { once: true })
   keyboard.onCommand(cmd => {
     if (cmd === 'mute') sound.toggleMute()
   })
