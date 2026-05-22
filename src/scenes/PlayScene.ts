@@ -234,7 +234,7 @@ export class PlayScene extends Container {
 
       // 便器番号ラベル (常時表示)。
       const numLabel = new Text({
-        text: String(u.id),
+        text: String(u.id + 1),
         style: {
           fontFamily: 'Inter, system-ui, sans-serif',
           fontSize: 10,
@@ -469,8 +469,8 @@ export class PlayScene extends Container {
         .fill({ color, alpha: 0.9 })
         .stroke({ color: CHAR_OUTLINE, width: 1.5, alpha: 0.7 })
 
-      // 客タイプのイニシャルラベル (毎フレーム text.text だけ更新)。
-      typeLabel.text = charTypeToLabel(char.type)
+      // 客タイプのイニシャルラベル (char.type は不変のため位置のみ更新)。
+      // text は getOrCreateCharEntry で初回セット済み。
       typeLabel.x = char.x
       typeLabel.y = char.y
 

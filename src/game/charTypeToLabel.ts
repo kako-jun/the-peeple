@@ -21,5 +21,11 @@ export function charTypeToLabel(type: CharType): string {
       return 'G'
     case 'DRUNK':
       return '?'
+    default: {
+      // 将来 CharType に値が追加された場合にコンパイルエラーにする。
+      const _: never = type
+      void _
+      return ''
+    }
   }
 }
