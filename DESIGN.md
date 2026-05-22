@@ -104,6 +104,12 @@ GLASS_BORDER_ALPHA = 0.9    // 枠線は高め不透明度
 GLASS_SHADOW     = #aaccdd  // 外縁の影（淡い水色）
 ```
 
+#### テキスト装飾カラー
+
+```
+COMMENT_GOLD     = #cc8800  // リザルト総評テキスト（琥珀金。白背景でコントラスト維持）
+```
+
 **使用ルール**:
 
 - 背後のゲーム画面は `alpha 0.82` の乳白色フィルターで透けて見える
@@ -125,19 +131,19 @@ GLASS_SHADOW     = #aaccdd  // 外縁の影（淡い水色）
 
 ### 2-2. タイポグラフィ
 
-| 用途                                 | フォント          | サイズ            | 色                          | 備考                         |
-| ------------------------------------ | ----------------- | ----------------- | --------------------------- | ---------------------------- |
-| ゲームロゴ「The Peeple」             | Inter / system-ui | 44px bold 700     | UI_TEXT_PRIMARY（濃紺）     | タイトル画面                 |
-| 副題「Stand Off」                    | Inter / system-ui | 16px normal       | UI_TEXT_PRIMARY alpha 0.5   |                              |
-| HUD（時間・スコア・ミス）            | Inter / system-ui | 14〜16px bold 600 | UI_TEXT_PRIMARY（濃紺）     | 白背景なので濃紺が読みやすい |
-| ボタンラベル                         | Inter / system-ui | 14〜16px bold 600 | UI_TEXT_PRIMARY（濃紺）     |                              |
-| セクションラベル（モード・難易度）   | Inter / system-ui | 11px medium 500   | UI_TEXT_DIM（くすんだ水色） |                              |
-| 便器ラベル「タップ」                 | Inter / system-ui | 10px              | URINAL_TAP_LABEL（深青）    | 空きのみ表示                 |
-| 便器番号（1〜4）                     | Inter / system-ui | 10px              | UI_TEXT_DIM                 | 常時表示（**#26 未実装**）   |
-| 客タイプイニシャル（N / R! / G / ?） | Inter / system-ui | 10px bold         | UI_TEXT_ON_DARK（白）       | キャラ円内（**#26 未実装**） |
-| 結果画面サマリ                       | Inter / system-ui | 12〜16px          | UI_TEXT_PRIMARY             |                              |
-| 総評テキスト                         | Inter / system-ui | 13px              | `#cc8800`（琥珀金）         | 白背景で映える暖色           |
-| すりガラス内テキスト                 | Inter / system-ui | 任意              | UI_TEXT_PRIMARY（濃紺）     | GLASS 背景上は常に濃紺       |
+| 用途                                 | フォント          | サイズ            | 色                          | 備考                          |
+| ------------------------------------ | ----------------- | ----------------- | --------------------------- | ----------------------------- |
+| ゲームロゴ「The Peeple」             | Inter / system-ui | 44px bold 700     | UI_TEXT_PRIMARY（濃紺）     | タイトル画面                  |
+| 副題「Stand Off」                    | Inter / system-ui | 16px normal       | UI_TEXT_PRIMARY alpha 0.5   |                               |
+| HUD（時間・スコア・ミス）            | Inter / system-ui | 14〜16px bold 600 | UI_TEXT_PRIMARY（濃紺）     | 白背景なので濃紺が読みやすい  |
+| ボタンラベル                         | Inter / system-ui | 14〜16px bold 600 | UI_TEXT_PRIMARY（濃紺）     |                               |
+| セクションラベル（モード・難易度）   | Inter / system-ui | 11px medium 500   | UI_TEXT_DIM（くすんだ水色） |                               |
+| 便器ラベル「タップ」                 | Inter / system-ui | 10px              | URINAL_TAP_LABEL（深青）    | 空きのみ表示                  |
+| 便器番号（1〜4）                     | Inter / system-ui | 10px              | UI_TEXT_DIM                 | 常時表示（**#26 未実装**）    |
+| 客タイプイニシャル（N / R! / G / ?） | Inter / system-ui | 10px bold         | UI_TEXT_ON_DARK（白）       | キャラ円内（**#26 未実装**）  |
+| 結果画面サマリ                       | Inter / system-ui | 12〜16px          | UI_TEXT_PRIMARY             |                               |
+| 総評テキスト                         | Inter / system-ui | 13px              | COMMENT_GOLD                | 白背景で映える暖色（#cc8800） |
+| すりガラス内テキスト                 | Inter / system-ui | 任意              | UI_TEXT_PRIMARY（濃紺）     | GLASS 背景上は常に濃紺        |
 
 ---
 
@@ -307,7 +313,7 @@ y = +238  「タイトルへ (Esc)」ボタン (220×52px)
 | スコア≥40          | 平均的な誘導。もう少し端を意識して |
 | それ以外           | まだまだ練習が必要です             |
 
-> **テキスト色**: `#cc8800`（琥珀金）— 白背景上で金賞的な意味を持ちながら高コントラストを維持
+> **テキスト色**: `COMMENT_GOLD`（#cc8800、琥珀金）— 白背景上で金賞的な意味を持ちながら高コントラストを維持
 
 ---
 

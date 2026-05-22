@@ -15,6 +15,9 @@ import {
   ANGER_LOW,
   ANGER_HIGH,
   COMMENT_GOLD,
+  GLASS_FILL,
+  GLASS_FILL_ALPHA,
+  GLASS_BORDER_ALPHA,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { GameStats } from '../game/types'
@@ -215,7 +218,12 @@ export class ResultScene extends Container {
           text: `${info.desc.replace(/:.+/, '')} × ${info.count}  (${sign}${info.score})`,
           style: {
             ...smallStyle,
-            fill: info.score >= 0 ? ANGER_LOW : ANGER_HIGH,
+            fill:
+              info.score > 0
+                ? ANGER_LOW
+                : info.score < 0
+                  ? ANGER_HIGH
+                  : UI_TEXT_DIM,
           },
         })
         line.anchor.set(0.5, 0)
@@ -300,11 +308,11 @@ export class ResultScene extends Container {
     const y = centerY - BUTTON_HEIGHT / 2
     g.clear()
     g.roundRect(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, BUTTON_RADIUS)
-      .fill({ color: UI_PRIMARY, alpha: hovered ? 0.35 : 0.2 })
+      .fill({ color: GLASS_FILL, alpha: hovered ? GLASS_FILL_ALPHA : 0.45 })
       .stroke({
         color: hovered ? UI_SECONDARY : UI_PRIMARY,
-        width: 1,
-        alpha: hovered ? 0.9 : 0.5,
+        width: hovered ? 2 : 1,
+        alpha: hovered ? GLASS_BORDER_ALPHA : 0.5,
       })
   }
 

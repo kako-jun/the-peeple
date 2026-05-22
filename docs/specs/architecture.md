@@ -200,14 +200,14 @@ anger が 100 に達すると即ミス扱いで強制退場。
 
 ### 便器カラー
 
-| 定数名                | HEX       | 用途                         |
-| --------------------- | --------- | ---------------------------- |
-| `URINAL_BODY`         | `#f8fcff` | 便器本体（白磁・EMPTY 状態） |
-| `URINAL_RIM`          | `#d0e8f4` | 縁・影                       |
-| `URINAL_GLOSS`        | `#ffffff` | 光沢ハイライト               |
-| `URINAL_OCCUPIED`     | `#ff6655` | 使用中（赤橙）               |
-| `URINAL_EMPTY_BORDER` | `#aaccdd` | 空き状態の枠線（水色）       |
-| `URINAL_TAP_LABEL`    | `#0077aa` | 「タップ」ラベル色           |
+| 定数名                | HEX       | 用途                                        |
+| --------------------- | --------- | ------------------------------------------- |
+| `URINAL_BODY`         | `#f8fcff` | 便器本体（白磁・EMPTY 状態）                |
+| `URINAL_RIM`          | `#d0e8f4` | 縁・影                                      |
+| `URINAL_GLOSS`        | `#ffffff` | 光沢ハイライト                              |
+| `URINAL_OCCUPIED`     | `#ff6655` | 使用中（赤橙）                              |
+| `URINAL_EMPTY_BORDER` | `#aaccdd` | 空き状態の枠線（水色）                      |
+| `URINAL_TAP_LABEL`    | `#0077aa` | 「タップ」ラベル色（`UI_PRIMARY` の alias） |
 
 ### 客タイプ別カラー
 
@@ -232,11 +232,11 @@ anger が 100 に達すると即ミス扱いで強制退場。
 
 ### 入口・施設カラー
 
-| 定数名            | HEX       | 用途               |
-| ----------------- | --------- | ------------------ |
-| `ENTRANCE_COLOR`  | `#22aa66` | 入口マーカー（緑） |
-| `ENTRANCE_BORDER` | `#ffffff` | 入口枠線           |
-| `QUEUE_LINE`      | `#88aabb` | 待機ライン（点線） |
+| 定数名            | HEX       | 用途                                      |
+| ----------------- | --------- | ----------------------------------------- |
+| `ENTRANCE_COLOR`  | `#22aa66` | 入口マーカー（緑、`CHAR_GROUP` の alias） |
+| `ENTRANCE_BORDER` | `#ffffff` | 入口枠線                                  |
+| `QUEUE_LINE`      | `#88aabb` | 待機ライン（点線）                        |
 
 ### すりガラスオーバーレイ（Frosted Glass）
 
@@ -247,3 +247,9 @@ anger が 100 に達すると即ミス扱いで強制退場。
 | `GLASS_BORDER`       | `#ffffff` | 枠線（白）       |
 | `GLASS_BORDER_ALPHA` | `0.9`     | 枠線不透明度     |
 | `GLASS_SHADOW`       | `#aaccdd` | 外縁の影         |
+
+### テキスト装飾カラー
+
+| 定数名         | HEX       | 用途                           |
+| -------------- | --------- | ------------------------------ |
+| `COMMENT_GOLD` | `#cc8800` | リザルト総評テキスト（琥珀金） |

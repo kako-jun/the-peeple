@@ -23,6 +23,7 @@ import {
   UI_TEXT_DIM,
   GLASS_FILL,
   GLASS_FILL_ALPHA,
+  GLASS_BORDER_ALPHA,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
@@ -384,7 +385,7 @@ export class TitleScene extends Container {
     g.clear()
     g.roundRect(x, y, TOGGLE_W, TOGGLE_H, RADIUS)
       .fill({
-        color: selected && !disabled ? UI_SECONDARY : UI_PRIMARY,
+        color: selected && !disabled ? UI_SECONDARY : GLASS_FILL,
         alpha: fillAlpha,
       })
       .stroke({
@@ -399,7 +400,7 @@ export class TitleScene extends Container {
     const x = -START_BTN_W / 2
     const y = START_BTN_Y - START_BTN_H / 2
     const fillAlpha = hovered ? GLASS_FILL_ALPHA : 0.45
-    const borderAlpha = hovered ? 0.9 : 0.6
+    const borderAlpha = hovered ? GLASS_BORDER_ALPHA : 0.6
     const borderColor = hovered ? UI_SECONDARY : UI_PRIMARY
     g.clear()
     g.roundRect(x, y, START_BTN_W, START_BTN_H, RADIUS)
