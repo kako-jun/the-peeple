@@ -360,6 +360,7 @@ export function spawnChar(
     state: 'ENTERING',
     assignedUrinalId: null,
     useTimeRemaining: useDuration,
+    useTimeDuration: useDuration,
     anger: 0,
     angerRate: params.angerRate,
     speedMult: params.speedMult,
