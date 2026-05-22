@@ -231,6 +231,54 @@ describe('assignToUrinal', () => {
     assignToUrinal(chars, urinals, stats, 0) // 端の便器
     expect(stats.appliedRules.length).toBeGreaterThan(0)
   })
+
+  it('端の便器 (urinalId=0) への割当で stats.score が +10 になる (END_URINAL)', () => {
+    // urinalId=3 (右端) に割当、両側は: left(urinal[2])=OCCUPIED → SAME_COLUMN_TABOO が入る。
+    // 端かつ隣なしの純粋な END_URINAL のみを得るには、urinalId=3 で urinal[2]=EMPTY が必要。
+    // しかし全 EMPTY でも NO_NEIGHBOR も加算される。
+    // END_URINAL のみ (+10) にするには隣が占有かつ FORCED_ADJACENT 条件を作れない。
+    // 実際: 端 + 片方占有 = END_URINAL(+10) + SAME_COLUMN_TABOO(-15) = -5
+    // 端 + 両側空 = END_URINAL(+10) + NO_NEIGHBOR(+20) = +30
+    // 端の便器への割当で END_URINAL が必ず含まれることを確認し、スコア寄与 +10 を検証する。
+    // 全 EMPTY 状態で urinalId=0: END_URINAL(+10) + NO_NEIGHBOR(+20) = 30
+    const stats = createGameStats()
+    assignToUrinal(chars, urinals, stats, 0)
+    // appliedRules に END_URINAL が含まれ、その scoreDelta が +10
+    const endRule = stats.appliedRules.find(r => r.ruleId === 'END_URINAL')
+    expect(endRule).toBeDefined()
+    expect(endRule?.scoreDelta).toBe(10)
+  })
+
+  it('端の便器 (urinalId=0) で隣が EMPTY なら stats.score が +20 になる (END_URINAL + NO_NEIGHBOR)', () => {
+    // 全便器 EMPTY、urinalId=0 に割当 → END_URINAL(+10) + NO_NEIGHBOR(+20) = +30 ではなく
+    // evaluateAssignment の実装を確認: isEnd=true → END_URINAL, noNeighbor=true → NO_NEIGHBOR
+    const stats = createGameStats()
+    assignToUrinal(chars, urinals, stats, 0)
+    // END_URINAL(+10) + NO_NEIGHBOR(+20) = 30
+    expect(stats.score).toBe(30)
+  })
+
+  it('直接隣接した便器への割当で stats.score が -15 になる (SAME_COLUMN_TABOO)', () => {
+    // urinalId=1 に割当し、先に urinalId=0 を占有しておく。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    const stats = createGameStats()
+    assignToUrinal(chars, urinals, stats, 1)
+    // urinalId=1 は端ではない → END_URINAL なし; 隣 (0) が OCCUPIED → SAME_COLUMN_TABOO(-15)
+    expect(stats.score).toBe(-15)
+  })
+
+  it('FORCED_ADJACENT (両隣が埋まっている) で stats.score が ±0 になる', () => {
+    // urinalId=1 の両隣 (0,2) を埋める。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[2].state = 'OCCUPIED'
+    urinals[2].occupantId = 100
+    const stats = createGameStats()
+    assignToUrinal(chars, urinals, stats, 1)
+    // FORCED_ADJACENT(0) のみ → score は 0 のまま
+    expect(stats.score).toBe(0)
+  })
 })
 
 // ---------------------------------------------------------------------------

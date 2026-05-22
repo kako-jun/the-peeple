@@ -6,26 +6,38 @@
 import type { AppliedRule, Char, RuleId, Urinal } from './types'
 
 /** ルール定義テーブル。 */
-const RULES: Record<RuleId, { score: number; description: string }> = {
+const RULES: Record<
+  RuleId,
+  { score: number; description: string; shortLabel: string }
+> = {
   END_URINAL: {
     score: 10,
     description: '端の便器を選んだ: +10',
+    shortLabel: '端の便器',
   },
+  /**
+   * @future 便器5台以上構成（Issue #32）で有効化予定。
+   * 現在の4台構成では到達不能（SAME_COLUMN_TABOO が先に評価されるため）。
+   */
   NEIGHBOR_EMPTY: {
     score: 5,
     description: '隣を1つ空けて使用: +5',
+    shortLabel: '隣を1つ空け',
   },
   NO_NEIGHBOR: {
     score: 20,
     description: '完全に隣がいない状態: +20',
+    shortLabel: '完全に隣なし',
   },
   SAME_COLUMN_TABOO: {
     score: -15,
     description: '隣に人がいる状態に誘導: -15',
+    shortLabel: '直接隣接',
   },
   FORCED_ADJACENT: {
     score: 0,
     description: '選択肢なし (隣接は仕方ない): ±0',
+    shortLabel: '選択肢なし',
   },
 }
 
@@ -101,6 +113,7 @@ function applyRule(ruleId: RuleId, urinalId: number): AppliedRule {
     ruleId,
     urinalId,
     scoreDelta: def.score,
+    shortLabel: def.shortLabel,
     description: def.description,
   }
 }

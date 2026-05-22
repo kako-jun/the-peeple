@@ -44,7 +44,13 @@ import {
   QUEUE_LINE,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
-import type { Char, Difficulty, GameStats, Urinal } from '../game/types'
+import type {
+  Char,
+  CharType,
+  Difficulty,
+  GameStats,
+  Urinal,
+} from '../game/types'
 import {
   createUrinals,
   spawnChar,
@@ -81,7 +87,7 @@ const ENTRANCE_H = 28
 const CHAR_R = 10
 
 /** 客タイプ別の色。 */
-const CHAR_COLORS: Record<string, number> = {
+const CHAR_COLORS: Record<CharType, number> = {
   NORMAL: CHAR_NORMAL,
   RUSHER: CHAR_RUSHER,
   GROUP: CHAR_GROUP,
@@ -186,32 +192,6 @@ export class PlayScene extends Container {
   /** 最終 stats を取得 (Result 画面用)。 */
   getStats(): GameStats {
     return this.stats
-  }
-
-  /**
-   * ゲームをリセットして最初から始める。
-   *
-   * @deprecated difficulty が変わる場合は `destroy()` 後に新しい `PlayScene` を生成すること。
-   * 同一 difficulty で再スタートする場合のみ使用可。
-   */
-  reset(): void {
-    this.chars.length = 0
-    this.stats = createGameStats()
-    this.spawnAccum = 0
-    this.gameEnded = false
-    // 便器をすべて EMPTY に。
-    for (const u of this.urinals) {
-      u.state = 'EMPTY'
-      u.occupantId = null
-    }
-    // charGfxMap をクリア。
-    for (const entry of this.charGfxMap.values()) {
-      entry.gfx.destroy()
-      entry.angerBar.destroy()
-      entry.typeLabel.destroy()
-      entry.useTimeBar.destroy()
-    }
-    this.charGfxMap.clear()
   }
 
   // -------------------------------------------------------------------------
@@ -577,6 +557,8 @@ export class PlayScene extends Container {
       }
       this.soundManager?.stopBgm(300)
       this.onGameOver?.(this.stats)
+      // ゲームオーバー確定後は描画同期をスキップ（次フレームから early return）。
+      return
     }
 
     // 描画同期。

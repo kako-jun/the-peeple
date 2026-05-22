@@ -227,7 +227,7 @@ export class ResultScene extends Container {
       // ルールを集計 (同一 ruleId の回数を数える)。
       const ruleCounts = new Map<
         string,
-        { desc: string; count: number; score: number }
+        { shortLabel: string; count: number; score: number }
       >()
       for (const r of stats.appliedRules) {
         const key = r.ruleId
@@ -237,7 +237,7 @@ export class ResultScene extends Container {
           prev.score += r.scoreDelta
         } else {
           ruleCounts.set(key, {
-            desc: r.description,
+            shortLabel: r.shortLabel,
             count: 1,
             score: r.scoreDelta,
           })
@@ -251,7 +251,7 @@ export class ResultScene extends Container {
       for (const [, info] of sorted) {
         const sign = info.score > 0 ? '+' : ''
         const line = new Text({
-          text: `${info.desc.replace(/:.+/, '')} × ${info.count}  (${sign}${info.score})`,
+          text: `${info.shortLabel} × ${info.count}  (${sign}${info.score})`,
           style: {
             ...smallStyle,
             fill:

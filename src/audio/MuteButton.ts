@@ -37,8 +37,6 @@ export class MuteButton extends Container {
     this.size = size
 
     this.bg = new Graphics()
-    this.bg.eventMode = 'static'
-    this.bg.cursor = 'pointer'
     this.addChild(this.bg)
 
     this.labelText = new Text({
@@ -56,15 +54,18 @@ export class MuteButton extends Container {
     this.labelText.y = size / 2
     this.addChild(this.labelText)
 
-    this.bg.on('pointerover', () => {
+    this.eventMode = 'static'
+    this.cursor = 'pointer'
+
+    this.on('pointerover', () => {
       this.hovered = true
       this.redraw()
     })
-    this.bg.on('pointerout', () => {
+    this.on('pointerout', () => {
       this.hovered = false
       this.redraw()
     })
-    this.bg.on('pointertap', () => {
+    this.on('pointertap', () => {
       this.soundManager.toggleMute()
     })
 

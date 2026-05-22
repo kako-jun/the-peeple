@@ -119,6 +119,8 @@ export interface AppliedRule {
   ruleId: RuleId
   urinalId: number
   scoreDelta: number
+  /** 短いラベル (Result 画面の集計行用)。 */
+  shortLabel: string
   /** 日本語説明 (Result 画面用)。 */
   description: string
 }

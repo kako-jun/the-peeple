@@ -77,7 +77,9 @@ function moveToward(char: Char, deltaMS: number): boolean {
   const ratio = Math.min(step / d, 1)
   char.x += (char.targetX - char.x) * ratio
   char.y += (char.targetY - char.y) * ratio
-  if (d - step <= ARRIVE_DIST) {
+  // 移動後の残距離で到着判定する（到着判定を1箇所に統一）。
+  const dAfter = dist(char.x, char.y, char.targetX, char.targetY)
+  if (dAfter <= ARRIVE_DIST) {
     char.x = char.targetX
     char.y = char.targetY
     return true
@@ -294,6 +296,11 @@ export function createUrinals(viewH: number): Urinal[] {
 // キャラ生成 (#16 バリエーション)
 // ---------------------------------------------------------------------------
 
+/**
+ * キャラ ID の連番カウンタ。
+ * モジュールグローバルなミュータブル状態。
+ * テスト時は各 describe ブロックの beforeEach で resetCharIdCounter() を呼ぶこと。
+ */
 let nextCharId = 0
 
 /** 入口位置 (PlayScene ローカル、中央原点)。左上。 */
@@ -368,7 +375,10 @@ export function spawnChar(
   }
 }
 
-/** nextCharId リセット (テスト用)。 */
+/**
+ * nextCharId をリセットする（テスト用）。
+ * 各テストの beforeEach で呼ぶことで ID の連番をリセットし、テスト間の状態汚染を防ぐ。
+ */
 export function resetCharIdCounter(): void {
   nextCharId = 0
 }
