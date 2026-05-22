@@ -23,6 +23,7 @@ body {
   width: 100%;
   height: 100%;
   margin: 0;
+  overflow: hidden;
   background: var(--ui-bg);
   color: var(--ui-text-primary);
   font-family:
@@ -39,14 +40,16 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
 }
 
 /* DESIGN.md セクション 4: Game Canvas の border + glow */
 #root canvas {
+  display: block;
   border: 2px solid var(--ui-primary);
   border-radius: 4px;
   box-shadow: 0 0 20px rgba(0, 119, 170, 0.3);

@@ -1,7 +1,7 @@
 /**
  * プレイ画面 (Issues #11-#16, #18)。
  *
- * ## レイアウト (360×640、PixiJS ローカル座標: 中央 = 0,0)
+ * ## レイアウト (640×960、PixiJS ローカル座標: 中央 = 0,0)
  *
  * - 左上 (-160, -260) に入口。
  * - キャラが入口 → 中央待機列 (0, -40) へ歩く。
@@ -66,7 +66,7 @@ import { charTypeToLabel } from '../game/charTypeToLabel'
 // 定数
 // ---------------------------------------------------------------------------
 
-const VIEW_H = 640
+const VIEW_H = 960
 
 /** NORMAL 難易度のスポーン間隔 (ms)。テスト用に export。 */
 export const SPAWN_INTERVAL_NORMAL = 3000

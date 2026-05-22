@@ -17,8 +17,9 @@ import { parseUrlQuery } from './debug/urlQuery'
 import type { GameStats } from './game/types'
 import './index.css'
 
-const VIEW_W = 360
-const VIEW_H = 640
+const VIEW_W = 640
+const VIEW_H = 960
+const VIEW_ASPECT = VIEW_W / VIEW_H
 
 const SCENE_TRANSFORMS = {
   title: { x: VIEW_W / 2, y: VIEW_H / 2, scale: 1 },
@@ -42,6 +43,20 @@ async function bootstrap(): Promise<void> {
     autoDensity: true,
   })
   container.appendChild(app.canvas)
+  const resizeCanvas = (): void => {
+    const windowAspect = window.innerWidth / window.innerHeight
+    const displayH =
+      windowAspect > VIEW_ASPECT
+        ? Math.floor(window.innerHeight)
+        : Math.floor(window.innerWidth / VIEW_ASPECT)
+    const displayW = Math.floor(displayH * VIEW_ASPECT)
+    app.renderer.resize(displayW, displayH)
+    app.stage.scale.set(displayW / VIEW_W)
+    app.canvas.style.width = `${displayW}px`
+    app.canvas.style.height = `${displayH}px`
+  }
+  resizeCanvas()
+  window.addEventListener('resize', resizeCanvas)
 
   // 入力 Manager。
   const keyboard = new KeyboardManager()
@@ -78,6 +93,8 @@ async function bootstrap(): Promise<void> {
   app.stage.addChild(muteButton)
 
   let activeUnsub: (() => void) | null = null
+  let isPlayActive = false
+  let isLineRushActive = false
 
   // Title シーン。
   const titleScene = new TitleScene(
@@ -116,6 +133,7 @@ async function bootstrap(): Promise<void> {
   })
   lineRushScene.x = SCENE_TRANSFORMS.lineRush.x
   lineRushScene.y = SCENE_TRANSFORMS.lineRush.y
+  lineRushScene.visible = false
   sceneManager.world.addChild(lineRushScene)
 
   // Result シーン (常駐)。
@@ -171,8 +189,6 @@ async function bootstrap(): Promise<void> {
     setActiveScene('title')
   }
 
-  let isPlayActive = false
-  let isLineRushActive = false
   app.ticker.add(ticker => {
     sceneManager.update(ticker.deltaMS)
     if (isPlayActive) playScene.update(ticker.deltaMS)
@@ -185,6 +201,8 @@ async function bootstrap(): Promise<void> {
     activeUnsub = null
     isPlayActive = false
     isLineRushActive = false
+    playScene.visible = key === 'play'
+    lineRushScene.visible = key === 'lineRush'
     switch (key) {
       case 'title':
         activeUnsub = titleScene.attachInputs(keyboard)

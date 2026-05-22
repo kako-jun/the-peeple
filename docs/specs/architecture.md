@@ -60,7 +60,7 @@ the-peeple/
 ```mermaid
 flowchart TD
     A[index.html #root] --> B[bootstrap()]
-    B --> C[Application.init\n360×640, UI_BG背景]
+    B --> C[Application.init\n640×960, UI_BG背景]
     B --> D[KeyboardManager.attach\nwindow]
     B --> E[TouchManager.attach\ncanvas]
     B --> F[SoundManager.loadPersisted\nミュート復元]

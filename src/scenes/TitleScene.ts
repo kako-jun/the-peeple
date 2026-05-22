@@ -1,7 +1,7 @@
 /**
  * タイトル画面 (Issue #18)。
  *
- * ## レイアウト (360×640、PixiJS ローカル座標: 中央 = 0,0)
+ * ## レイアウト (640×960、PixiJS ローカル座標: 中央 = 0,0)
  *
  * - 上部  : 「The Peeple」ロゴ
  * - 中段  : モード選択 (Stand Off / Line Rush) 2 ボタン横並び
@@ -287,6 +287,7 @@ export class TitleScene extends Container {
         fill: disabled ? (UI_TEXT_DIM as number) : UI_TEXT_PRIMARY,
       },
     })
+    t.eventMode = 'none'
     t.anchor.set(0.5)
     t.x = cx
     t.y = cy
@@ -327,6 +328,7 @@ export class TitleScene extends Container {
     g.cursor = 'pointer'
 
     const t = new Text({ text: 'スタート', style: START_STYLE })
+    t.eventMode = 'none'
     t.anchor.set(0.5)
     t.x = 0
     t.y = START_BTN_Y
