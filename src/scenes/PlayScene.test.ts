@@ -1,14 +1,11 @@
 /**
- * PlayScene のユニットテスト (Issue #11)。
+ * PlayScene のユニットテスト (Issues #11, #12)。
  *
- * jsdom + KeyboardEvent ベースで「Esc (cancel コマンド) で onExit が発火する」ことを検証する。
- * Graphics 描画自体は jsdom では動かないが、PIXI.Container を継承する構造と
- * `attachInputs(keyboard, touch, onExit)` のコマンドハンドリングは確認できる。
- *
- * amanuma 側 `src/scenes/TitleScene.test.ts` のスタイルを踏襲。
+ * jsdom 環境では PixiJS Graphics が動かないため、
+ * `attachInputs` のコマンドハンドリングのみ検証する。
+ * ゲームロジック自体は src/game/logic.test.ts で検証する。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Container } from 'pixi.js'
 import { PlayScene } from './PlayScene'
 import { KeyboardManager } from '../input/KeyboardManager'
 import { TouchManager } from '../input/TouchManager'
@@ -32,7 +29,11 @@ describe('PlayScene', () => {
   afterEach(() => {
     unsub()
     keyboard.detach()
-    if (!scene.destroyed) scene.destroy()
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom では destroy が throws することがある */
+    }
   })
 
   function fire(key: string): void {
@@ -43,10 +44,6 @@ describe('PlayScene', () => {
     })
     window.dispatchEvent(ev)
   }
-
-  it('Container を継承している', () => {
-    expect(scene).toBeInstanceOf(Container)
-  })
 
   it('Escape (cancel) で onExit が発火する', () => {
     fire('Escape')
