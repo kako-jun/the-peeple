@@ -2,7 +2,7 @@
  * the-peeple ゲームロジック (Issues #11, #12)。
  *
  * 純粋関数として設計し、描画から完全分離する。
- * `update(state, deltaMS)` が毎フレーム呼ばれ、新しい state を返す。
+ * `updateGame(chars, urinals, deltaMS)` が毎フレーム呼ばれ、スコア加算分を返す。
  */
 import type { Char, CharState, Urinal } from './types'
 
@@ -12,10 +12,13 @@ const WALK_SPEED = 0.08
 /** キャラが目標に到着したと見なす距離 (px)。 */
 const ARRIVE_DIST = 4
 
+/** 退室完了と見なす X 座標。画面左外。 */
+const EXIT_X = -300
+
 /** 中央待機列の X 座標 (PlayScene ローカル、中央原点ベース)。 */
 export const QUEUE_X = 0
 
-/** 中央待機列の先頭 Y 座標。上から並ぶ。 */
+/** 中央待機列の先頭 Y 座標。 */
 export const QUEUE_HEAD_Y = -40
 
 /** 待機列の縦間隔。 */
@@ -28,7 +31,10 @@ function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt(dx * dx + dy * dy)
 }
 
-/** キャラを目標方向へ deltaMS 分だけ進める。到着したら true を返す。 */
+/**
+ * キャラを目標方向へ deltaMS 分だけ進める。
+ * 目標座標にスナップした場合 true を返す。
+ */
 function moveToward(char: Char, deltaMS: number): boolean {
   const d = dist(char.x, char.y, char.targetX, char.targetY)
   if (d <= ARRIVE_DIST) {
@@ -40,7 +46,13 @@ function moveToward(char: Char, deltaMS: number): boolean {
   const ratio = Math.min(step / d, 1)
   char.x += (char.targetX - char.x) * ratio
   char.y += (char.targetY - char.y) * ratio
-  return d - step <= ARRIVE_DIST
+  // スナップ到着判定: 今フレームで ARRIVE_DIST 内に入ったらスナップして到着扱い。
+  if (d - step <= ARRIVE_DIST) {
+    char.x = char.targetX
+    char.y = char.targetY
+    return true
+  }
+  return false
 }
 
 /** 待機列の位置を計算する (index 番目のキャラの座標)。 */
@@ -53,7 +65,7 @@ export function queuePosition(index: number): { x: number; y: number } {
 
 /**
  * ゲーム状態を 1 フレーム進める。
- * - chars / urinals を直接変更して返す (mutable update)。
+ * - chars / urinals を直接変更する (mutable update)。
  * @returns スコア加算分 (この frame で退室完了したキャラ数)。
  */
 export function updateGame(
@@ -102,7 +114,7 @@ export function updateGame(
         if (char.useTimeRemaining <= 0) {
           // 使い終わり → 退室。
           char.state = 'WALKING_OUT'
-          char.targetX = -300 // 画面左外 (入口と逆方向)
+          char.targetX = EXIT_X
           char.targetY = char.y
           // 便器を解放。
           if (char.assignedUrinalId !== null) {
@@ -117,20 +129,25 @@ export function updateGame(
         break
       }
       case 'WALKING_OUT': {
-        moveToward(char, deltaMS)
-        if (char.x <= -260) {
+        // EXIT_X (= targetX) に到着したらスコア加算して完了状態へ。
+        // moveToward が true を返すのは targetX にスナップした瞬間のみ (1フレーム1回保証)。
+        const exited = moveToward(char, deltaMS)
+        if (exited) {
           scoreGain++
+          // 削除マーカー: state を WALKING_OUT のまま x === EXIT_X にしておき後段で除去。
+          // (ループ内 splice は for..of の安全性を損なうため後処理に委ねる)
         }
         break
       }
     }
   }
 
-  // 退室完了キャラを削除。
-  const toRemove = chars.filter(c => c.state === 'WALKING_OUT' && c.x <= -260)
-  for (const c of toRemove) {
-    const idx = chars.indexOf(c)
-    if (idx >= 0) chars.splice(idx, 1)
+  // 退室完了キャラを削除 (targetX に到達済み = x === EXIT_X)。
+  for (let i = chars.length - 1; i >= 0; i--) {
+    const c = chars[i]
+    if (c.state === 'WALKING_OUT' && c.x === EXIT_X) {
+      chars.splice(i, 1)
+    }
   }
 
   // 待機列の目標座標を最新インデックスで更新。
@@ -171,11 +188,12 @@ export function assignToUrinal(
   return true
 }
 
-/** 初期 Urinal 配列を生成する。
+/**
+ * 初期 Urinal 配列を生成する。
  * 座標は PlayScene ローカル (中央原点)。
  * 縦長画面 (360×640) の下部に4基横並び。
  */
-export function createUrinals(_viewW: number, viewH: number): Urinal[] {
+export function createUrinals(viewH: number): Urinal[] {
   const count = 4
   const uW = 44
   const uH = 60
@@ -203,9 +221,6 @@ let nextCharId = 0
 export const ENTRANCE_X = -160
 export const ENTRANCE_Y = -260
 
-/** 入口から中央待機列への中間地点 Y (一旦この Y まで下りてから列に合流)。 */
-export const QUEUE_GATHER_Y = QUEUE_HEAD_Y
-
 /** 新規キャラを入口に生成。 */
 export function spawnChar(): Char {
   const id = nextCharId++
@@ -214,7 +229,7 @@ export function spawnChar(): Char {
     x: ENTRANCE_X,
     y: ENTRANCE_Y,
     targetX: QUEUE_X,
-    targetY: QUEUE_GATHER_Y,
+    targetY: QUEUE_HEAD_Y,
     state: 'WALKING_TO_QUEUE',
     assignedUrinalId: null,
     useTimeRemaining: 0,

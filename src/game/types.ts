@@ -3,7 +3,7 @@
  */
 
 /** 便器の状態。 */
-export type UrinalState = 'EMPTY' | 'OCCUPIED' | 'FINISHING'
+export type UrinalState = 'EMPTY' | 'OCCUPIED'
 
 /** 便器1基の定義。 */
 export interface Urinal {

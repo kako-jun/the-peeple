@@ -24,11 +24,9 @@ import {
   assignToUrinal,
   ENTRANCE_X,
   ENTRANCE_Y,
-  resetCharIdCounter,
 } from '../game/logic'
 
 // --- レイアウト定数 ---
-const VIEW_W = 360
 const VIEW_H = 640
 
 /** キャラスポーン間隔 (ms)。 */
@@ -37,7 +35,6 @@ const SPAWN_INTERVAL_MS = 3000
 /** 便器の色。 */
 const URINAL_COLOR_EMPTY = 0x4a9eff
 const URINAL_COLOR_OCCUPIED = 0xe74c3c
-const URINAL_COLOR_FINISHING = 0xf39c12
 
 /** 入口アイコンのサイズ。 */
 const ENTRANCE_W = 40
@@ -75,8 +72,6 @@ export class PlayScene extends Container {
   constructor() {
     super()
 
-    resetCharIdCounter()
-
     this.urinalLayer = new Container()
     this.charLayer = new Container()
     this.hudLayer = new Container()
@@ -84,7 +79,7 @@ export class PlayScene extends Container {
     this.addChild(this.charLayer)
     this.addChild(this.hudLayer)
 
-    this.urinals = createUrinals(VIEW_W, VIEW_H)
+    this.urinals = createUrinals(VIEW_H)
     this.buildUrinalGraphics()
     this.buildEntrance()
     this.buildHud()
@@ -127,18 +122,8 @@ export class PlayScene extends Container {
     if (!entry) return
     const { gfx, label } = entry
 
-    let color: number
-    switch (u.state) {
-      case 'OCCUPIED':
-        color = URINAL_COLOR_OCCUPIED
-        break
-      case 'FINISHING':
-        color = URINAL_COLOR_FINISHING
-        break
-      default:
-        color = URINAL_COLOR_EMPTY
-        break
-    }
+    const color =
+      u.state === 'OCCUPIED' ? URINAL_COLOR_OCCUPIED : URINAL_COLOR_EMPTY
 
     gfx.clear()
     // 便器本体 (角丸矩形)。
@@ -208,7 +193,7 @@ export class PlayScene extends Container {
       },
     })
     label.anchor.set(0.5)
-    label.x = 24
+    label.x = 28 // QUEUE_X=0 から少し右にオフセット (ガイド線と重ならないよう)
     label.y = -100
     this.addChild(label)
   }
