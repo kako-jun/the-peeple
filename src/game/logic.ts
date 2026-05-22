@@ -1,10 +1,17 @@
 /**
- * the-peeple ゲームロジック (Issues #11-#16)。
+ * the-peeple ゲームロジック (Issues #11-#16, #18)。
  *
  * 純粋関数として設計し、描画から完全分離する。
  * `updateGame(chars, urinals, stats, deltaMS)` が毎フレーム呼ばれる。
  */
-import type { Char, CharState, CharType, GameStats, Urinal } from './types'
+import type {
+  Char,
+  CharState,
+  CharType,
+  Difficulty,
+  GameStats,
+  Urinal,
+} from './types'
 import { evaluateAssignment } from './scoring'
 
 // ---------------------------------------------------------------------------
@@ -297,8 +304,27 @@ export const ENTRANCE_Y = -260
  * 経過時間に応じた客タイプ抽選 (時間経過でバリエーション増加)。
  * @param elapsedMs ゲーム経過時間 (ms)。
  */
-function pickCharType(elapsedMs: number): CharType {
+function pickCharType(
+  elapsedMs: number,
+  difficulty: Difficulty = 'NORMAL'
+): CharType {
   const r = Math.random()
+  if (difficulty === 'HARD') {
+    // HARD: 序盤から RUSHER/DRUNK が登場し、終盤は高確率。
+    if (elapsedMs < 10000) {
+      return r < 0.3 ? 'RUSHER' : 'NORMAL'
+    } else if (elapsedMs < 25000) {
+      if (r < 0.25) return 'RUSHER'
+      if (r < 0.35) return 'DRUNK'
+      return 'NORMAL'
+    } else {
+      if (r < 0.25) return 'RUSHER'
+      if (r < 0.4) return 'GROUP'
+      if (r < 0.55) return 'DRUNK'
+      return 'NORMAL'
+    }
+  }
+  // NORMAL。
   if (elapsedMs < 20000) {
     // 序盤: NORMAL のみ。
     return 'NORMAL'
@@ -315,9 +341,12 @@ function pickCharType(elapsedMs: number): CharType {
 }
 
 /** 新規キャラを入口に生成。 */
-export function spawnChar(elapsedMs: number = 0): Char {
+export function spawnChar(
+  elapsedMs: number = 0,
+  difficulty: Difficulty = 'NORMAL'
+): Char {
   const id = nextCharId++
-  const type = pickCharType(elapsedMs)
+  const type = pickCharType(elapsedMs, difficulty)
   const params = CHAR_PARAMS[type]
   const [dMin, dMax] = params.useDuration
   const useDuration = dMin + Math.random() * (dMax - dMin)

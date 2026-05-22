@@ -1,5 +1,5 @@
 /**
- * プレイ画面 (Issues #11-#16)。
+ * プレイ画面 (Issues #11-#16, #18)。
  *
  * ## レイアウト (360×640、PixiJS ローカル座標: 中央 = 0,0)
  *
@@ -21,6 +21,7 @@ import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
 import type { TouchManager } from '../input/TouchManager'
 import { UI_TEXT_PRIMARY } from '../constants/colors'
 import type { Char, GameStats, Urinal } from '../game/types'
+import type { Difficulty } from '../game/types'
 import {
   createUrinals,
   spawnChar,
@@ -37,8 +38,9 @@ import {
 
 const VIEW_H = 640
 
-/** キャラスポーン間隔 (ms)。 */
-const SPAWN_INTERVAL_MS = 3000
+/** キャラスポーン間隔 (ms)。難易度別に設定。 */
+const SPAWN_INTERVAL_NORMAL = 3000
+const SPAWN_INTERVAL_HARD = 1800
 
 /** ゲームオーバーになるミス数。 */
 const MAX_MISSES = 5
@@ -90,6 +92,9 @@ export class PlayScene extends Container {
   private readonly chars: Char[] = []
   private stats: GameStats
 
+  private readonly difficulty: Difficulty
+  private readonly spawnIntervalMs: number
+
   private readonly urinalGfxMap = new Map<number, UrinalEntry>()
   private readonly charGfxMap = new Map<number, CharEntry>()
 
@@ -111,8 +116,12 @@ export class PlayScene extends Container {
 
   private gameEnded = false
 
-  constructor() {
+  constructor(difficulty: Difficulty = 'NORMAL') {
     super()
+
+    this.difficulty = difficulty
+    this.spawnIntervalMs =
+      difficulty === 'HARD' ? SPAWN_INTERVAL_HARD : SPAWN_INTERVAL_NORMAL
 
     this.stats = createGameStats()
 
@@ -436,9 +445,9 @@ export class PlayScene extends Container {
 
     // スポーン。
     this.spawnAccum += deltaMS
-    if (this.spawnAccum >= SPAWN_INTERVAL_MS) {
-      this.spawnAccum -= SPAWN_INTERVAL_MS
-      this.chars.push(spawnChar(this.stats.elapsed))
+    if (this.spawnAccum >= this.spawnIntervalMs) {
+      this.spawnAccum -= this.spawnIntervalMs
+      this.chars.push(spawnChar(this.stats.elapsed, this.difficulty))
     }
 
     // ゲームロジック更新。

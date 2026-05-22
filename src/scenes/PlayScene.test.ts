@@ -65,3 +65,38 @@ describe('PlayScene', () => {
     expect(onExit).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// PlayScene - Difficulty (#18)
+// ---------------------------------------------------------------------------
+describe('PlayScene - Difficulty', () => {
+  it('NORMAL 難易度で生成できる', () => {
+    const scene = new PlayScene('NORMAL')
+    expect(scene).toBeTruthy()
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom */
+    }
+  })
+
+  it('HARD 難易度で生成できる', () => {
+    const scene = new PlayScene('HARD')
+    expect(scene).toBeTruthy()
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom */
+    }
+  })
+
+  it('引数省略時は NORMAL 扱い (デフォルト値)', () => {
+    const scene = new PlayScene()
+    expect(scene).toBeTruthy()
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom */
+    }
+  })
+})

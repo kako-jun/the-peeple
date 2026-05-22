@@ -1,11 +1,12 @@
 /**
- * the-peeple エントリーポイント (Issues #9-#17)。
+ * the-peeple エントリーポイント (Issues #9-#19)。
  */
 import { Application } from 'pixi.js'
 import { SceneManager, type SceneKey } from './scenes/SceneManager'
-import { TitleScene } from './scenes/TitleScene'
+import { TitleScene, type TitleSelection } from './scenes/TitleScene'
 import { PlayScene } from './scenes/PlayScene'
 import { ResultScene } from './scenes/ResultScene'
+import { LineRushScene } from './scenes/LineRushScene'
 import { KeyboardManager } from './input/KeyboardManager'
 import { TouchManager } from './input/TouchManager'
 import { SoundManager } from './audio/SoundManager'
@@ -20,7 +21,10 @@ const SCENE_TRANSFORMS = {
   title: { x: VIEW_W / 2, y: VIEW_H / 2, scale: 1 },
   play: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H, scale: 1 },
   result: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H * 2, scale: 1 },
+  lineRush: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H, scale: 1 },
 } as const
+
+type ExtSceneKey = SceneKey | 'lineRush'
 
 async function bootstrap(): Promise<void> {
   const container = document.getElementById('root')
@@ -71,29 +75,50 @@ async function bootstrap(): Promise<void> {
   let activeUnsub: (() => void) | null = null
 
   // Title シーン。
-  const titleScene = new TitleScene(() => startPlay(), sound)
+  const titleScene = new TitleScene(
+    (sel: TitleSelection) => startGame(sel),
+    sound
+  )
   titleScene.x = SCENE_TRANSFORMS.title.x
   titleScene.y = SCENE_TRANSFORMS.title.y
   sceneManager.world.addChild(titleScene)
 
-  // Play シーン。
-  const playScene = new PlayScene()
+  // Stand Off (Play) シーン — 後から difficulty 設定。
+  let playScene = new PlayScene('NORMAL')
   playScene.x = SCENE_TRANSFORMS.play.x
   playScene.y = SCENE_TRANSFORMS.play.y
   sceneManager.world.addChild(playScene)
 
   // ゲームオーバー / 時間切れを PlayScene から受け取る。
-  playScene.setOnGameOver(stats => {
-    resultScene.setResult({ kind: 'clear', stats })
-    setActiveScene('result')
-    void sceneManager.navigateTo('result', 800)
+  const setupPlayGameOver = (scene: PlayScene): void => {
+    scene.setOnGameOver(stats => {
+      resultScene.setResult({ kind: 'clear', stats })
+      setActiveScene('result')
+      void sceneManager.navigateTo('result', 800)
+    })
+  }
+  setupPlayGameOver(playScene)
+
+  // Line Rush シーン (stub)。
+  const lineRushScene = new LineRushScene({
+    onTitle: () => {
+      setActiveScene('title')
+      void sceneManager.navigateTo('title', 800)
+    },
   })
+  lineRushScene.x = SCENE_TRANSFORMS.lineRush.x
+  lineRushScene.y = SCENE_TRANSFORMS.lineRush.y
+  sceneManager.world.addChild(lineRushScene)
 
   // Result シーン (常駐)。
   const resultScene = new ResultScene({
     soundManager: sound,
     onRestart: () => {
-      startPlay()
+      const sel: TitleSelection = {
+        mode: titleScene.getSelectedMode(),
+        difficulty: titleScene.getSelectedDifficulty(),
+      }
+      startGame(sel)
     },
     onTitle: () => {
       setActiveScene('title')
@@ -111,24 +136,26 @@ async function bootstrap(): Promise<void> {
   setActiveScene('title')
 
   let isPlayActive = false
+  let isLineRushActive = false
   app.ticker.add(ticker => {
     sceneManager.update(ticker.deltaMS)
     if (isPlayActive) playScene.update(ticker.deltaMS)
+    if (isLineRushActive) lineRushScene.update(ticker.deltaMS)
   })
 
   // シーン遷移ハンドラ。
-  function setActiveScene(key: SceneKey): void {
+  function setActiveScene(key: ExtSceneKey): void {
     activeUnsub?.()
     activeUnsub = null
+    isPlayActive = false
+    isLineRushActive = false
     switch (key) {
       case 'title':
-        isPlayActive = false
         activeUnsub = titleScene.attachInputs(keyboard)
         break
       case 'play':
         isPlayActive = true
         activeUnsub = playScene.attachInputs(keyboard, touch, () => {
-          // Esc = ギブアップ。現在の stats で Result に遷移。
           resultScene.setResult({
             kind: 'gameover',
             stats: playScene.getStats(),
@@ -137,15 +164,35 @@ async function bootstrap(): Promise<void> {
           void sceneManager.navigateTo('result', 800)
         })
         break
+      case 'lineRush':
+        isLineRushActive = true
+        activeUnsub = lineRushScene.attachInputs(keyboard)
+        break
       case 'result':
-        isPlayActive = false
         activeUnsub = resultScene.attachInputs(keyboard)
         break
     }
   }
 
-  function startPlay(): void {
-    playScene.reset()
+  function startGame(sel: TitleSelection): void {
+    if (sel.mode === 'LINE_RUSH') {
+      // Line Rush は stub シーンへ。
+      setActiveScene('lineRush')
+      void sceneManager.navigateTo('play', 800) // play と同じ Y 位置。
+      return
+    }
+    // Stand Off: difficulty に合わせて PlayScene を再生成。
+    const oldPlay = playScene
+    const newPlay = new PlayScene(sel.difficulty)
+    newPlay.x = SCENE_TRANSFORMS.play.x
+    newPlay.y = SCENE_TRANSFORMS.play.y
+    setupPlayGameOver(newPlay)
+    sceneManager.world.addChild(newPlay)
+    playScene = newPlay
+    // 古い PlayScene を取り除く。
+    sceneManager.world.removeChild(oldPlay)
+    oldPlay.destroy()
+
     setActiveScene('play')
     void sceneManager.navigateTo('play', 800)
   }
