@@ -24,6 +24,7 @@ import {
   GLASS_FILL,
   GLASS_FILL_ALPHA,
   GLASS_BORDER_ALPHA,
+  GLASS_SHADOW,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
@@ -368,7 +369,7 @@ export class TitleScene extends Container {
           ? 0.6
           : 0.4
     const borderColor = disabled
-      ? UI_TEXT_DIM
+      ? GLASS_SHADOW
       : selected
         ? UI_SECONDARY
         : entry.hovered

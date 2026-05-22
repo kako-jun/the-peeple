@@ -4,28 +4,32 @@
  * DESIGN.md のカラーパレット定義に完全準拠。
  * PixiJS の色指定は 0xRRGGBB 形式。alpha は別途指定。
  * 更新時は必ず DESIGN.md を正典として参照すること。
+ *
+ * @future タグが付いた定数は未実装機能（背景タイル描画 / 光沢表現 等）向けの
+ * 予約定数。現在どのシーンにも import されていないが、将来の Issue（#25〜#33）で
+ * 使用予定のため削除しないこと。
  */
 
 // ──────────────────────────────────────────
 // 環境カラー（トイレ空間）
 // ──────────────────────────────────────────
 
-/** 室内背景（極薄水色、蛍光灯の青白い光） */
+/** 室内背景（極薄水色、蛍光灯の青白い光）@future 背景タイル描画（Issue #25） */
 export const ROOM_BG = 0xe8f4f8
 
-/** タイル壁面（白に近い水色） */
+/** タイル壁面（白に近い水色）@future 背景タイル描画（Issue #25） */
 export const TILE_WALL = 0xf0f8fc
 
-/** タイル目地（薄いグレー水色） */
+/** タイル目地（薄いグレー水色）@future 背景タイル描画（Issue #25） */
 export const TILE_GROUT = 0xc8dce6
 
-/** 床（壁より少し濃い水色） */
+/** 床（壁より少し濃い水色）@future 背景タイル描画（Issue #25） */
 export const FLOOR_BG = 0xd6ecf4
 
-/** 磁器・タイルの光沢ハイライト（純白） */
+/** 磁器・タイルの光沢ハイライト（純白）@future 光沢スペキュラ描画（Issue #26） */
 export const GLOSS_HIGHLIGHT = 0xffffff
 
-/** 影（薄い青灰色。深い影は使わない） */
+/** 影（薄い青灰色。深い影は使わない）@future 床影描画（Issue #25） */
 export const SHADOW_SOFT = 0xb0ccd8
 
 // ──────────────────────────────────────────
@@ -57,10 +61,10 @@ export const UI_TEXT_ON_DARK = 0xffffff
 /** 便器本体（白磁） */
 export const URINAL_BODY = 0xf8fcff
 
-/** 縁・影（薄い水色） */
+/** 縁・影（薄い水色）@future 便器詳細描画（Issue #26） */
 export const URINAL_RIM = 0xd0e8f4
 
-/** 光沢ハイライト（純白の点） */
+/** 光沢ハイライト（純白の点）@future 便器光沢描画（Issue #26） */
 export const URINAL_GLOSS = 0xffffff
 
 /** 使用中（鮮やかな赤橙。白背景で映える） */
@@ -136,7 +140,7 @@ export const GLASS_FILL = 0xe8f4f8
 /** すりガラス半透明度（向こうがうっすら透ける） */
 export const GLASS_FILL_ALPHA = 0.82
 
-/** 枠線（光沢ある白） */
+/** 枠線（光沢ある白）@future すりガラス枠線描画（TitleScene/ResultScene 拡張時） */
 export const GLASS_BORDER = 0xffffff
 
 /** 枠線不透明度（高め） */

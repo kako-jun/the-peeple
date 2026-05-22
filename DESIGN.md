@@ -293,13 +293,15 @@ y = +104  スタートボタン (144×52px、中央)
 y = -270  見出し「ゲームオーバー」or「タイム終了！」(36px bold)
 y = -200  サマリコンテナ原点
    +0     SCORE / MISS / TIME 横並び (16px bold)
-   +28    総評テキスト (#ffd700 金色、13px)
+    +28    総評テキスト（COMMENT_GOLD、13px）
    +56    「── 適用ルール ──」(12px グレー)
    +76〜  ルール一覧（最大5件、各 18px）
             + ルール名 × 回数  (+スコア) — 緑/赤色分け
 
 y = +170  「もう一度 (R)」ボタン (220×52px)
 y = +238  「タイトルへ (Esc)」ボタン (220×52px)
+         塗り: GLASS_FILL / 非ホバー alpha 0.45 / ホバー alpha GLASS_FILL_ALPHA (0.82)
+         枠線: 非ホバー UI_PRIMARY alpha 0.5 幅 1px / ホバー UI_SECONDARY alpha GLASS_BORDER_ALPHA (0.9) 幅 2px
 ```
 
 ### 総評テキスト分岐ロジック
