@@ -150,8 +150,8 @@ async function bootstrap(): Promise<void> {
   const urlQuery = parseUrlQuery()
   if (urlQuery.scene === 'play') {
     const difficulty = urlQuery.difficulty ?? 'NORMAL'
-    void sceneManager.navigateTo('play', 0)
-    startGame({ mode: 'STAND_OFF', difficulty })
+    // デバッグ直接起動はアニメなし（0ms）で即遷移する。
+    startGame({ mode: 'STAND_OFF', difficulty }, 0)
   } else if (urlQuery.scene === 'result') {
     const dummyStats: GameStats = {
       score: 999,
@@ -211,11 +211,11 @@ async function bootstrap(): Promise<void> {
     }
   }
 
-  function startGame(sel: TitleSelection): void {
+  function startGame(sel: TitleSelection, navDuration = 800): void {
     if (sel.mode === 'LINE_RUSH') {
       // Line Rush stub シーンへ遷移。
       setActiveScene('lineRush')
-      void sceneManager.navigateTo('lineRush', 800)
+      void sceneManager.navigateTo('lineRush', navDuration)
       return
     }
     // Stand Off: difficulty を指定して PlayScene を再生成する。
@@ -231,7 +231,7 @@ async function bootstrap(): Promise<void> {
     oldPlay.destroy()
 
     setActiveScene('play')
-    void sceneManager.navigateTo('play', 800)
+    void sceneManager.navigateTo('play', navDuration)
   }
 }
 

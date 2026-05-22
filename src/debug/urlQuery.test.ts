@@ -76,4 +76,9 @@ describe('parseUrlQuery', () => {
     setSearch('?difficulty=HARD')
     expect(parseUrlQuery()).toEqual({ scene: null, difficulty: 'HARD' })
   })
+
+  it('scene=PLAY (大文字) → null を返す (scene は正規化しない)', () => {
+    setSearch('?scene=PLAY')
+    expect(parseUrlQuery()).toEqual({ scene: null, difficulty: null })
+  })
 })
