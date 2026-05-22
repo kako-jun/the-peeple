@@ -36,7 +36,6 @@ export class SoundManager {
   private muted: boolean
   /** Safari/iOS のオートプレイ解除用。 */
   private ctx: AudioContext | null = null
-  private currentBgm: HTMLAudioElement | null = null
   private currentBgmKey: BgmKey | null = null
   /** ミュート切替や永続化リスナー (UI 表示更新用)。 */
   private readonly muteListeners: Set<(muted: boolean) => void> = new Set()
@@ -85,15 +84,9 @@ export class SoundManager {
       // AudioContext 作成失敗。SFX/BGM は HTMLAudio で動くので致命的ではない。
       this.ctx = null
     }
-    // unlock 直後に BGM の play() が許可される可能性があるので、
-    // currentBgm が pause 状態 (= 前回 play 失敗) なら再度試す。
-    if (this.currentBgm && this.currentBgm.paused && !this.muted) {
-      const p = this.currentBgm.play()
-      if (p && typeof p.then === 'function') {
-        p.catch(() => {
-          /* still blocked: 無視 */
-        })
-      }
+    // unlock 直後に BGM を再開する（ミュートでない場合）。
+    if (!this.muted && this.currentBgmKey === 'bgm-play') {
+      this.synthBgmPlay()
     }
   }
 
@@ -113,7 +106,7 @@ export class SoundManager {
   }
 
   /** Web Audio API で SFX を直接生成する。 */
-  synthSfx(key: SfxKey): void {
+  private synthSfx(key: SfxKey): void {
     switch (key) {
       case 'sfx-assign':
         playSfxAssign()
@@ -137,7 +130,7 @@ export class SoundManager {
   // BGM
   // ----------------------------------------------------------------------
 
-  playBgm(key: BgmKey, opts: { loop?: boolean; fadeMs?: number } = {}): void {
+  playBgm(key: BgmKey, _opts: { loop?: boolean; fadeMs?: number } = {}): void {
     if (this.muted) return
     if (this.currentBgmKey === key) return
     // 前の BGM を停止。
@@ -147,16 +140,15 @@ export class SoundManager {
       this.synthBgmPlay()
     }
     // bgm-title は no-op。
-    void opts
   }
 
-  /** bgm-play 手続き型ループを開始する。 */
-  synthBgmPlay(): void {
+  /** bgm-play 手続き型ループを開始する（内部用）。 */
+  private synthBgmPlay(): void {
     startBgmPlay()
   }
 
-  /** bgm-play 手続き型ループを停止する。 */
-  synthBgmStop(): void {
+  /** bgm-play 手続き型ループを停止する（内部用）。 */
+  private synthBgmStop(): void {
     stopBgmPlay()
   }
 
@@ -247,7 +239,6 @@ export class SoundManager {
   destroy(): void {
     this.synthBgmStop()
     this.currentBgmKey = null
-    this.currentBgm = null
     this.muteListeners.clear()
     if (this.ctx !== null) {
       try {
