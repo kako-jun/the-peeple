@@ -499,7 +499,10 @@ export class PlayScene extends Container {
       useTimeBar.clear()
       if (char.state === 'USING' && char.useTimeDuration > 0) {
         const barW = CHAR_R * 2
-        const ratio = Math.max(0, char.useTimeRemaining / char.useTimeDuration)
+        const ratio = Math.min(
+          1,
+          Math.max(0, char.useTimeRemaining / char.useTimeDuration)
+        )
         const utColor =
           ratio > 0.5 ? ANGER_LOW : ratio > 0.3 ? ANGER_MID : ANGER_HIGH
         // バー背景。
