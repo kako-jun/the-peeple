@@ -30,6 +30,10 @@ export interface ResultSceneOptions {
   onRestart: () => void
   onTitle: () => void
   soundManager?: SoundManager | null
+  /**
+   * ハイスコア読み書き用ストレージ。省略時は NEW RECORD 判定・保存を行わない。
+   * テスト時はモック実装を渡すこと。
+   */
   storage?: StorageAdapter
 }
 

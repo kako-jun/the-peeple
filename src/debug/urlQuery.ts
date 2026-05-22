@@ -17,9 +17,10 @@ export interface UrlQueryResult {
 
 /**
  * `window.location.search` を読み取り、有効な scene / difficulty を返す。
- * 無効な値は null として扱う。
+ * 無効な値は null として扱う。ブラウザ専用（SSR / Node 環境では空結果を返す）。
  */
 export function parseUrlQuery(): UrlQueryResult {
+  if (typeof window === 'undefined') return { scene: null, difficulty: null }
   const params = new URLSearchParams(window.location.search)
 
   const rawScene = params.get('scene')

@@ -356,20 +356,8 @@ export class TitleScene extends Container {
     const best = loadHighscore(this.storage)
     if (best === 0) return
 
-    const bestText = new Text({
-      text: `BEST: ${best}`,
-      style: {
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: 12,
-        fill: UI_TEXT_DIM,
-        align: 'center',
-      },
-    })
-    bestText.anchor.set(0.5)
-    bestText.x = 0
-    bestText.y = START_BTN_Y + START_BTN_H / 2 + 16
-    this.bestText = bestText
-    this.addChild(bestText)
+    this.bestText = this.createBestText(best)
+    this.addChild(this.bestText)
   }
 
   /** タイトルへ戻るたびに呼ぶ。BEST 表示を最新値に更新する。 */
@@ -386,23 +374,27 @@ export class TitleScene extends Container {
     }
 
     if (!this.bestText) {
-      const t = new Text({
-        text: `BEST: ${best}`,
-        style: {
-          fontFamily: 'Inter, system-ui, sans-serif',
-          fontSize: 12,
-          fill: UI_TEXT_DIM,
-          align: 'center',
-        },
-      })
-      t.anchor.set(0.5)
-      t.x = 0
-      t.y = START_BTN_Y + START_BTN_H / 2 + 16
-      this.bestText = t
-      this.addChild(t)
+      this.bestText = this.createBestText(best)
+      this.addChild(this.bestText)
     } else {
       this.bestText.text = `BEST: ${best}`
     }
+  }
+
+  private createBestText(best: number): Text {
+    const t = new Text({
+      text: `BEST: ${best}`,
+      style: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: 12,
+        fill: UI_TEXT_DIM,
+        align: 'center',
+      },
+    })
+    t.anchor.set(0.5)
+    t.x = 0
+    t.y = START_BTN_Y + START_BTN_H / 2 + 16
+    return t
   }
 
   // -------------------------------------------------------------------------

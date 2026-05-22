@@ -37,6 +37,17 @@ export function injectAudioContext(ctx: AudioContext): void {
   _ctx = ctx
 }
 
+/**
+ * synth モジュールの AudioContext を resume する。
+ * iOS Safari 等でユーザー操作後に呼ぶことで SFX の無音を防ぐ。
+ * SoundManager.unlock() から呼ばれる。
+ */
+export function resumeSynthCtx(): void {
+  if (_ctx && _ctx.state === 'suspended') {
+    void _ctx.resume()
+  }
+}
+
 // ---------------------------------------------------------------------------
 // SFX
 // ---------------------------------------------------------------------------

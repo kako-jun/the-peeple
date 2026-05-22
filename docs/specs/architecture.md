@@ -25,22 +25,27 @@ the-peeple/
 │   │   └── colors.ts        UI・環境・キャラ・便器カラー定数（0xRRGGBB）
 │   ├── scenes/
 │   │   ├── SceneManager.ts  カメラ tween・シーン登録・誌面管理
-│   │   ├── TitleScene.ts    タイトル画面（モード・難易度選択）
+│   │   ├── TitleScene.ts    タイトル画面（モード・難易度選択、BEST スコア表示）
 │   │   ├── PlayScene.ts     プレイ画面（ゲームループ統合）
-│   │   ├── ResultScene.ts   リザルト画面（スコア・ルール表示）
+│   │   ├── ResultScene.ts   リザルト画面（スコア・ルール表示・NEW RECORD 表示）
 │   │   └── LineRushScene.ts Line Rush モード stub（Coming Soon）
 │   ├── game/
 │   │   ├── types.ts         共通型定義（Char / Urinal / GameStats 等）
 │   │   ├── logic.ts         純粋関数ゲームロジック（状態遷移・スポーン）
-│   │   └── scoring.ts       心理スコアリングルール評価
+│   │   ├── scoring.ts       心理スコアリングルール評価
+│   │   ├── charTypeToLabel.ts CharType → ラベル文字変換（N/R!/G/?）
+│   │   ├── highscore.ts     ハイスコア読み書き・新記録判定
+│   │   └── StorageAdapter.ts localStorage ラッパー（テスト時モック差替可）
 │   ├── input/
 │   │   ├── KeyboardManager.ts キーボードコマンド変換・配信
 │   │   └── TouchManager.ts    タッチ/マウスジェスチャ変換・配信
-│   └── audio/
-│       ├── SoundManager.ts  SFX・BGM・ミュート・localStorage 永続化
-│       └── MuteButton.ts    PixiJS ミュートボタン UI
-├── public/
-│   └── sounds/              音声アセット置き場（現状は空）
+│   ├── audio/
+│   │   ├── SoundManager.ts  SFX・BGM・ミュート・localStorage 永続化
+│   │   ├── MuteButton.ts    PixiJS ミュートボタン UI
+│   │   └── synth.ts         Web Audio API 手続き型音響生成（外部ファイル不要）
+│   └── debug/
+│       └── urlQuery.ts      URL クエリ解析（デバッグ直接起動用）
+├── public/                  静的アセット置き場（音声ファイルは使用しない）
 ├── docs/
 │   └── specs/               仕様書ディレクトリ
 ├── DESIGN.md                ビジュアル・レイアウト・ゲームルール設計書
@@ -60,29 +65,35 @@ flowchart TD
     B --> E[TouchManager.attach\ncanvas]
     B --> F[SoundManager.loadPersisted\nミュート復元]
     B --> G[SceneManager 生成\nworld コンテナを stage に追加]
+    B --> SA[LocalStorageAdapter 生成]
     G --> H[TitleScene 生成 → world に追加]
     G --> I[PlayScene 生成 → world に追加]
     G --> J[LineRushScene 生成 → world に追加]
     G --> K[ResultScene 生成 → world に追加]
-    K --> L[navigateTo title 0ms\n即スナップ]
-    L --> M[app.ticker.add\nSceneManager.update + 各シーン.update]
+    K --> UQ[parseUrlQuery で URL クエリ解析]
+    UQ -->|scene=play| L1[startGame 0ms 即遷移]
+    UQ -->|scene=result| L2[ResultScene ダミー表示]
+    UQ -->|scene=lineRush| L3[LineRushScene 表示]
+    UQ -->|なし/不正| L4[navigateTo title 0ms\n即スナップ]
+    L4 --> M[app.ticker.add\nSceneManager.update + 各シーン.update]
 ```
 
 - `bootstrap()` はトップレベルで `void bootstrap()` として呼ばれる
 - `MuteButton` は `world` ではなく `app.stage` 直下に固定配置（カメラに追従しない）
 - 初回ユーザー操作（pointerdown / keydown / touchstart）で `SoundManager.unlock()` を一度だけ呼ぶ
 - `PlayScene` はゲーム開始のたびに `destroy()` + 再生成（`difficulty` 変更を確実に反映するため `reset()` は非推奨）
+- URL クエリ（`?scene=play&difficulty=HARD` 等）が指定された場合は `parseUrlQuery` でシーンを直接起動する（デバッグ用）
 
 ---
 
 ## シーン一覧
 
-| シーン名  | クラス          | 役割                                   | 遷移先                          |
-| --------- | --------------- | -------------------------------------- | ------------------------------- |
-| タイトル  | `TitleScene`    | モード・難易度選択、スタートトリガー   | PlayScene / LineRushScene       |
-| プレイ    | `PlayScene`     | ゲームループ、便器タップ誘導、HUD 表示 | ResultScene                     |
-| リザルト  | `ResultScene`   | スコア・ルール一覧・総評表示           | PlayScene（再挑戦）/ TitleScene |
-| Line Rush | `LineRushScene` | Coming Soon プレースホルダ             | TitleScene                      |
+| シーン名  | クラス          | 役割                                                                             | 遷移先                          |
+| --------- | --------------- | -------------------------------------------------------------------------------- | ------------------------------- |
+| タイトル  | `TitleScene`    | モード・難易度選択、スタートトリガー、BEST スコア表示                            | PlayScene / LineRushScene       |
+| プレイ    | `PlayScene`     | ゲームループ、便器タップ誘導、HUD 表示（便器番号・客タイプラベル・残り時間バー） | ResultScene                     |
+| リザルト  | `ResultScene`   | スコア・ルール一覧・総評表示、NEW RECORD 表示                                    | PlayScene（再挑戦）/ TitleScene |
+| Line Rush | `LineRushScene` | Coming Soon プレースホルダ                                                       | TitleScene                      |
 
 遷移アニメーション: `SceneManager.navigateTo(key, 800)` で `cubicInOut` 800ms カメラ tween。
 タイトル初期表示のみ `navigateTo(key, 0)` で即スナップ。
@@ -134,7 +145,7 @@ flowchart TD
 | `DRUNK`  | `CHAR_DRUNK`  | 0.006                | 8000〜14000 ms | 0.7       | 経過 40 秒後（ランダム便器突撃） |
 
 - `DRUNK` は `assignToUrinal` 内でランダムに選出（50% 確率で待機列中の DRUNK から抽選）
-- `GROUP` の隣接ペナルティ免除は未実装（Issue #25）
+- `GROUP` の隣接ペナルティ免除は実装済み（Issue #25、PR #34）
 
 ---
 
@@ -250,6 +261,67 @@ anger が 100 に達すると即ミス扱いで強制退場。
 
 ### テキスト装飾カラー
 
-| 定数名         | HEX       | 用途                           |
-| -------------- | --------- | ------------------------------ |
-| `COMMENT_GOLD` | `#cc8800` | リザルト総評テキスト（琥珀金） |
+| 定数名         | HEX       | 用途                                             |
+| -------------- | --------- | ------------------------------------------------ |
+| `COMMENT_GOLD` | `#cc8800` | リザルト総評テキスト・NEW RECORD! 表示（琥珀金） |
+
+---
+
+## 音響システム
+
+外部音声ファイル（.ogg/.mp3/.wav）は使用しない。すべて Web Audio API で手続き型生成する。
+
+### SFX キー (`SfxKey`)
+
+| キー           | 再生タイミング         |
+| -------------- | ---------------------- |
+| `sfx-assign`   | 便器割り当て成功       |
+| `sfx-miss`     | ミス（怒り満タン退場） |
+| `sfx-gameover` | ゲームオーバー         |
+| `sfx-clear`    | クリア                 |
+| `ui-select`    | UI 選択操作            |
+
+### BGM キー (`BgmKey`)
+
+| キー        | 内容                                     |
+| ----------- | ---------------------------------------- |
+| `bgm-play`  | キック + ハイハット BPM=120 ビートループ |
+| `bgm-title` | no-op（タイトルはサイレント）            |
+
+- ミュート状態は `localStorage` の `the_peeple_muted` キーに永続化
+- 初回ユーザー操作で `SoundManager.unlock()` を呼び AudioContext を resume する
+
+---
+
+## ハイスコア
+
+`src/game/highscore.ts` が `StorageAdapter` インターフェース経由で localStorage を読み書きする。
+
+| 関数            | 説明                                   |
+| --------------- | -------------------------------------- |
+| `loadHighscore` | 保存済みスコアを返す（未保存は 0）     |
+| `saveHighscore` | スコアを保存                           |
+| `isNewRecord`   | 現在のスコアがベストを超えているか判定 |
+
+- localStorage キー: `the_peeple_highscore`
+- `StorageAdapter` はインターフェースのため、テスト時にモックに差し替え可能
+- `ResultScene` で新記録を検出したら保存 + `NEW RECORD!`（COMMENT_GOLD、20px bold）を表示
+- `TitleScene` はタイトルへ戻るたびに `updateBestScore()` を呼び BEST 表示を最新化
+
+---
+
+## URL クエリによるデバッグ直接起動
+
+`src/debug/urlQuery.ts` の `parseUrlQuery()` が URL パラメータを解析し、`bootstrap()` でシーンを直接起動する。
+
+| クエリ例                        | 動作                        |
+| ------------------------------- | --------------------------- |
+| `?scene=play&difficulty=NORMAL` | PlayScene (NORMAL) を即起動 |
+| `?scene=play&difficulty=HARD`   | PlayScene (HARD) を即起動   |
+| `?scene=result`                 | ResultScene（ダミー stats） |
+| `?scene=lineRush`               | LineRushScene を即起動      |
+| パラメータなし / 不正値         | 通常通りタイトルから起動    |
+
+- `scene` は大文字小文字を区別する（`PLAY` は無効）
+- `difficulty` は大文字小文字を正規化する（`hard` → `HARD`）
+- デバッグ直接起動は遷移アニメーションなし（0ms）

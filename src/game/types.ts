@@ -83,7 +83,7 @@ export interface Char {
   assignedUrinalId: number | null
   /** 用を足す残り時間 (ms)。USING 状態でのみカウント。 */
   useTimeRemaining: number
-  /** 用を足す合計時間 (ms)。USING 開始時に useTimeRemaining からコピー。残り時間バー計算用。 */
+  /** 用を足す合計時間 (ms)。spawnChar 時に useDuration と同じ値で初期化。残り時間バー計算用。 */
   useTimeDuration: number
   /**
    * 苛立ちゲージ (0〜100)。QUEUING 中に時間が経つほど増加。

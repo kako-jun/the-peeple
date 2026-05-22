@@ -13,6 +13,7 @@ import {
   playSfxUiSelect,
   startBgmPlay,
   stopBgmPlay,
+  resumeSynthCtx,
 } from './synth'
 
 export type SfxKey =
@@ -85,6 +86,8 @@ export class SoundManager {
       this.ctx = null
     }
     // unlock 直後に BGM を再開する（ミュートでない場合）。
+    // synth.ts の AudioContext も resume する（iOS Safari 対応）。
+    resumeSynthCtx()
     if (!this.muted && this.currentBgmKey === 'bgm-play') {
       this.synthBgmPlay()
     }

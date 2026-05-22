@@ -432,8 +432,8 @@ ResultScene
 | 🔲 Phase 3b | GROUP 隣接ペナルティ免除（バグ修正相当）      | #25             |
 | ✅ Phase 3c | 使用中キャラの残り時間インジケーター          | #27             |
 | 🔲 Phase 3d | 便器5台化 + NEIGHBOR_EMPTY 有効化             | #32             |
-| 🔲 Phase 4a | URL クエリ直接起動（デバッグ基盤）            | #30             |
-| 🔲 Phase 4b | ハイスコード保存 + NEW RECORD 表示            | #29             |
-| 🔲 Phase 4c | SE / BGM 実装                                 | #28             |
+| ✅ Phase 4a | URL クエリ直接起動（デバッグ基盤）            | #30             |
+| ✅ Phase 4b | ハイスコア保存 + NEW RECORD 表示              | #29             |
+| ✅ Phase 4c | SE / BGM 実装                                 | #28             |
 | 🔲 Phase 5  | Line Rush 本実装（仕様確定後）                | #31             |
 | 🔲 Phase 6  | ドット絵素材・キャラデザイン本実装            | 新規起票        |
