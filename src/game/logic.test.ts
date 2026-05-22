@@ -341,6 +341,46 @@ describe('evaluateAssignment — スコアリングルール', () => {
     expect(ids).toContain('FORCED_ADJACENT')
     expect(scoreDelta).toBe(0)
   })
+
+  it('GROUP: 隣に人がいても SAME_COLUMN_TABOO を適用しない', () => {
+    // 便器0を占有、GROUP タイプで便器1 に割当 → ペナルティなし。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[1].state = 'OCCUPIED'
+    const groupChar = { type: 'GROUP' } as import('./types').Char
+    const { rules } = evaluateAssignment(1, urinals, groupChar)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).not.toContain('SAME_COLUMN_TABOO')
+  })
+
+  it('GROUP: 隣に人がいない場合は通常通り NO_NEIGHBOR が適用される', () => {
+    urinals[1].state = 'OCCUPIED'
+    const groupChar = { type: 'GROUP' } as import('./types').Char
+    const { rules } = evaluateAssignment(1, urinals, groupChar)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('NO_NEIGHBOR')
+    expect(ids).not.toContain('SAME_COLUMN_TABOO')
+  })
+
+  it('DRUNK: 隣に人がいれば通常通り SAME_COLUMN_TABOO が適用される', () => {
+    // DRUNK は GROUP 免除対象外。
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[1].state = 'OCCUPIED'
+    const drunkChar = { type: 'DRUNK' } as import('./types').Char
+    const { rules } = evaluateAssignment(1, urinals, drunkChar)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('SAME_COLUMN_TABOO')
+  })
+
+  it('char 省略時（undefined）は既存の SAME_COLUMN_TABOO 動作を維持', () => {
+    urinals[0].state = 'OCCUPIED'
+    urinals[0].occupantId = 99
+    urinals[1].state = 'OCCUPIED'
+    const { rules } = evaluateAssignment(1, urinals)
+    const ids = rules.map(r => r.ruleId)
+    expect(ids).toContain('SAME_COLUMN_TABOO')
+  })
 })
 
 // ---------------------------------------------------------------------------

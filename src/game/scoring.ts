@@ -3,7 +3,7 @@
  *
  * 便器割当時にルールを判定し、スコア加算と AppliedRule 記録を返す。
  */
-import type { AppliedRule, RuleId, Urinal } from './types'
+import type { AppliedRule, Char, RuleId, Urinal } from './types'
 
 /** ルール定義テーブル。 */
 const RULES: Record<RuleId, { score: number; description: string }> = {
@@ -34,11 +34,13 @@ const RULES: Record<RuleId, { score: number; description: string }> = {
  *
  * @param urinalId  割り当てる便器 ID
  * @param urinals   全便器リスト
+ * @param char      割り当てるキャラクター（省略可）。GROUP タイプ時は隣接ペナルティを免除。
  * @returns { scoreDelta, rules }
  */
 export function evaluateAssignment(
   urinalId: number,
-  urinals: Urinal[]
+  urinals: Urinal[],
+  char?: Char
 ): { scoreDelta: number; rules: AppliedRule[] } {
   const applied: AppliedRule[] = []
   let total = 0
@@ -79,12 +81,15 @@ export function evaluateAssignment(
     total += r.scoreDelta
   } else {
     // 直接隣（distance=1）に人がいる = タブー。
+    // GROUP タイプは団体客なので隣接ペナルティを免除する。
     // NEIGHBOR_EMPTY は「1つ空けた (distance ≥ 2)」が理想だが
     // 4台構成では両隣が必ず distance=1 のため適用対象なし。
     // 直接隣接ペナルティとして SAME_COLUMN_TABOO を適用する。
-    const r = applyRule('SAME_COLUMN_TABOO', urinalId)
-    applied.push(r)
-    total += r.scoreDelta
+    if (char?.type !== 'GROUP') {
+      const r = applyRule('SAME_COLUMN_TABOO', urinalId)
+      applied.push(r)
+      total += r.scoreDelta
+    }
   }
 
   return { scoreDelta: total, rules: applied }
