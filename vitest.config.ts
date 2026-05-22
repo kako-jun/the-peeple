@@ -18,6 +18,7 @@ export default defineConfig({
       ['src/input/**/*.test.ts', 'jsdom'],
       ['src/scenes/**/*.test.ts', 'jsdom'],
       ['src/audio/**/*.test.ts', 'jsdom'],
+      ['src/debug/**/*.test.ts', 'jsdom'],
       ['src/**/*.test.ts', 'node'],
     ],
   },
