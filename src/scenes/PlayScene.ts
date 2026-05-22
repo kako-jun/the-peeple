@@ -103,6 +103,7 @@ interface CharEntry {
   gfx: Graphics
   angerBar: Graphics
   typeLabel: Text
+  useTimeBar: Graphics
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +202,7 @@ export class PlayScene extends Container {
       entry.gfx.destroy()
       entry.angerBar.destroy()
       entry.typeLabel.destroy()
+      entry.useTimeBar.destroy()
     }
     this.charGfxMap.clear()
   }
@@ -439,10 +441,12 @@ export class PlayScene extends Container {
         },
       })
       typeLabel.anchor.set(0.5)
+      const useTimeBar = new Graphics()
       this.charLayer.addChild(gfx)
       this.charLayer.addChild(angerBar)
       this.charLayer.addChild(typeLabel)
-      entry = { id: char.id, gfx, angerBar, typeLabel }
+      this.charLayer.addChild(useTimeBar)
+      entry = { id: char.id, gfx, angerBar, typeLabel, useTimeBar }
       this.charGfxMap.set(char.id, entry)
     }
     return entry
@@ -453,7 +457,7 @@ export class PlayScene extends Container {
 
     for (const char of this.chars) {
       const entry = this.getOrCreateCharEntry(char)
-      const { gfx, angerBar, typeLabel } = entry
+      const { gfx, angerBar, typeLabel, useTimeBar } = entry
 
       // キャラ本体。
       const baseColor = CHAR_COLORS[char.type] ?? CHAR_NORMAL
@@ -490,6 +494,30 @@ export class PlayScene extends Container {
           )
           .fill({ color: bColor, alpha: 0.9 })
       }
+
+      // 残り使用時間バー (USING 状態のキャラ頭上)。
+      useTimeBar.clear()
+      if (char.state === 'USING' && char.useTimeDuration > 0) {
+        const barW = CHAR_R * 2
+        const ratio = Math.max(0, char.useTimeRemaining / char.useTimeDuration)
+        const utColor =
+          ratio > 0.5 ? ANGER_LOW : ratio > 0.3 ? ANGER_MID : ANGER_HIGH
+        // バー背景。
+        useTimeBar
+          .rect(char.x - CHAR_R, char.y - CHAR_R - 12, barW, 3)
+          .fill({ color: ANGER_BG, alpha: 0.8 })
+        // バー本体。
+        if (ratio > 0) {
+          useTimeBar
+            .rect(
+              char.x - CHAR_R,
+              char.y - CHAR_R - 12,
+              Math.round(barW * ratio),
+              3
+            )
+            .fill({ color: utColor, alpha: 0.9 })
+        }
+      }
     }
 
     // 退室済みキャラの gfx を削除。
@@ -498,6 +526,7 @@ export class PlayScene extends Container {
         entry.gfx.destroy()
         entry.angerBar.destroy()
         entry.typeLabel.destroy()
+        entry.useTimeBar.destroy()
         this.charGfxMap.delete(id)
       }
     }
