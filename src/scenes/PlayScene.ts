@@ -19,7 +19,28 @@
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
 import type { TouchManager } from '../input/TouchManager'
-import { UI_TEXT_PRIMARY } from '../constants/colors'
+import {
+  UI_TEXT_PRIMARY,
+  UI_TEXT_DIM,
+  URINAL_BODY,
+  URINAL_OCCUPIED,
+  URINAL_EMPTY_BORDER,
+  URINAL_TAP_LABEL,
+  CHAR_NORMAL,
+  CHAR_RUSHER,
+  CHAR_GROUP,
+  CHAR_DRUNK,
+  CHAR_OUTLINE,
+  CHAR_USING,
+  CHAR_LEAVING,
+  ANGER_LOW,
+  ANGER_MID,
+  ANGER_HIGH,
+  ANGER_BG,
+  ENTRANCE_COLOR,
+  ENTRANCE_BORDER,
+  QUEUE_LINE,
+} from '../constants/colors'
 import type { Char, Difficulty, GameStats, Urinal } from '../game/types'
 import {
   createUrinals,
@@ -48,10 +69,6 @@ const MAX_MISSES = 5
 /** ゲーム時間 (ms)。0 = 無制限。 */
 const GAME_DURATION_MS = 90000 // 90秒
 
-/** 便器の色。 */
-const URINAL_COLOR_EMPTY = 0x4a9eff
-const URINAL_COLOR_OCCUPIED = 0xe74c3c
-
 /** 入口アイコンのサイズ。 */
 const ENTRANCE_W = 40
 const ENTRANCE_H = 28
@@ -61,10 +78,10 @@ const CHAR_R = 10
 
 /** 客タイプ別の色。 */
 const CHAR_COLORS: Record<string, number> = {
-  NORMAL: 0x3498db,
-  RUSHER: 0xe67e22,
-  GROUP: 0x27ae60,
-  DRUNK: 0x9b59b6,
+  NORMAL: CHAR_NORMAL,
+  RUSHER: CHAR_RUSHER,
+  GROUP: CHAR_GROUP,
+  DRUNK: CHAR_DRUNK,
 }
 
 // ---------------------------------------------------------------------------
@@ -219,18 +236,18 @@ export class PlayScene extends Container {
     if (!entry) return
     const { gfx, label } = entry
 
-    const color =
-      u.state === 'OCCUPIED' ? URINAL_COLOR_OCCUPIED : URINAL_COLOR_EMPTY
+    const color = u.state === 'OCCUPIED' ? URINAL_OCCUPIED : URINAL_BODY
 
     gfx.clear()
     gfx
       .roundRect(u.x - u.width / 2, u.y - u.height / 2, u.width, u.height, 6)
       .fill({ color, alpha: 0.85 })
-      .stroke({ color: 0xffffff, width: 1.5, alpha: 0.4 })
+      .stroke({ color: URINAL_EMPTY_BORDER, width: 1.5, alpha: 0.6 })
 
     label.x = u.x
     label.y = u.y + u.height / 2 + 10
     label.text = u.state === 'EMPTY' ? 'タップ' : ''
+    label.style.fill = URINAL_TAP_LABEL
   }
 
   private buildEntrance(): void {
@@ -243,8 +260,8 @@ export class PlayScene extends Container {
         ENTRANCE_H,
         4
       )
-      .fill({ color: 0x27ae60, alpha: 0.9 })
-      .stroke({ color: 0xffffff, width: 1, alpha: 0.6 })
+      .fill({ color: ENTRANCE_COLOR, alpha: 0.9 })
+      .stroke({ color: ENTRANCE_BORDER, width: 1, alpha: 0.6 })
     this.addChild(gfx)
 
     const label = new Text({
@@ -271,23 +288,23 @@ export class PlayScene extends Container {
     const dashGap = 8
     for (let y = yTop; y < yBottom; y += dashLen + dashGap) {
       gfx.moveTo(x, y).lineTo(x, Math.min(y + dashLen, yBottom))
-      gfx.stroke({ color: 0xaaaaaa, width: 1, alpha: 0.3 })
+      gfx.stroke({ color: QUEUE_LINE, width: 1, alpha: 0.4 })
     }
     this.addChild(gfx)
 
-    const label = new Text({
+    const qLabel = new Text({
       text: '待機',
       style: {
         fontFamily: 'Inter, system-ui, sans-serif',
         fontSize: 10,
-        fill: 0xaaaaaa,
+        fill: UI_TEXT_DIM,
         align: 'center',
       },
     })
-    label.anchor.set(0.5)
-    label.x = 28
-    label.y = -110
-    this.addChild(label)
+    qLabel.anchor.set(0.5)
+    qLabel.x = 28
+    qLabel.y = -110
+    this.addChild(qLabel)
   }
 
   /** HUD: 画面上部に時間 / スコア / ミス + 苛立ちゲージ。 */
@@ -331,7 +348,7 @@ export class PlayScene extends Container {
     const bgBar = new Graphics()
     bgBar
       .roundRect(-80, TOP + 24, 160, 8, 4)
-      .fill({ color: 0x333333, alpha: 0.8 })
+      .fill({ color: ANGER_BG, alpha: 0.8 })
     this.hudLayer.addChild(bgBar)
 
     // 苛立ちゲージ本体 (毎フレーム更新)。
@@ -341,7 +358,7 @@ export class PlayScene extends Container {
     // 苛立ちラベル。
     this.hudAngerLabel = new Text({
       text: '苛立ち',
-      style: { ...textStyle, fontSize: 10, fill: 0xaaaaaa },
+      style: { ...textStyle, fontSize: 10, fill: UI_TEXT_DIM },
     })
     this.hudAngerLabel.anchor.set(0, 0)
     this.hudAngerLabel.x = -80
@@ -367,7 +384,7 @@ export class PlayScene extends Container {
     const angerRatio = Math.min(1, this.stats.maxAnger / 100)
     const barW = Math.round(160 * angerRatio)
     const angerColor =
-      angerRatio > 0.8 ? 0xff2222 : angerRatio > 0.5 ? 0xff8800 : 0xffcc00
+      angerRatio > 0.8 ? ANGER_HIGH : angerRatio > 0.5 ? ANGER_MID : ANGER_LOW
     const TOP = -VIEW_H / 2 + 8
     this.hudAngerBar.clear()
     if (barW > 0) {
@@ -402,18 +419,18 @@ export class PlayScene extends Container {
       const { gfx, angerBar } = entry
 
       // キャラ本体。
-      const baseColor = CHAR_COLORS[char.type] ?? 0x3498db
+      const baseColor = CHAR_COLORS[char.type] ?? CHAR_NORMAL
       const color =
         char.state === 'USING'
-          ? 0xf39c12
+          ? CHAR_USING
           : char.state === 'LEAVING'
-            ? 0x95a5a6
+            ? CHAR_LEAVING
             : baseColor
       gfx.clear()
       gfx
         .circle(char.x, char.y, CHAR_R)
         .fill({ color, alpha: 0.9 })
-        .stroke({ color: 0xffffff, width: 1.5, alpha: 0.7 })
+        .stroke({ color: CHAR_OUTLINE, width: 1.5, alpha: 0.7 })
 
       // 客タイプのイニシャル。
       // (テキストを毎フレーム生成するのは重いので Graphics のみとし文字省略)
@@ -424,7 +441,7 @@ export class PlayScene extends Container {
         const barW = CHAR_R * 2
         const ratio = char.anger / 100
         const bColor =
-          ratio > 0.8 ? 0xff2222 : ratio > 0.5 ? 0xff8800 : 0xffee00
+          ratio > 0.8 ? ANGER_HIGH : ratio > 0.5 ? ANGER_MID : ANGER_LOW
         angerBar
           .rect(
             char.x - CHAR_R,

@@ -16,7 +16,12 @@
  */
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
-import { UI_PRIMARY, UI_SECONDARY, UI_TEXT_PRIMARY } from '../constants/colors'
+import {
+  UI_PRIMARY,
+  UI_SECONDARY,
+  UI_TEXT_PRIMARY,
+  UI_TEXT_DIM,
+} from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
 
@@ -46,7 +51,7 @@ const LABEL_STYLE = {
   fontFamily: 'Inter, system-ui, sans-serif',
   fontSize: 11,
   fontWeight: '500' as const,
-  fill: 0x888888 as number,
+  fill: UI_TEXT_DIM as number,
   align: 'center' as const,
 }
 

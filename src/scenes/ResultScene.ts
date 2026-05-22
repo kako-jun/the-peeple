@@ -7,7 +7,12 @@
  */
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
-import { UI_PRIMARY, UI_SECONDARY, UI_TEXT_PRIMARY } from '../constants/colors'
+import {
+  UI_PRIMARY,
+  UI_SECONDARY,
+  UI_TEXT_PRIMARY,
+  UI_TEXT_DIM,
+} from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { GameStats } from '../game/types'
 
@@ -136,7 +141,7 @@ export class ResultScene extends Container {
     const smallStyle = {
       ...textStyle,
       fontSize: 12,
-      fill: 0xcccccc,
+      fill: UI_TEXT_DIM,
     }
 
     let y = 0
@@ -157,7 +162,7 @@ export class ResultScene extends Container {
     const comment = this.generateComment(stats)
     const commentText = new Text({
       text: comment,
-      style: { ...textStyle, fontSize: 13, fill: 0xffd700 },
+      style: { ...textStyle, fontSize: 13, fill: 0xcc8800 },
     })
     commentText.anchor.set(0.5, 0)
     commentText.x = 0
