@@ -9,10 +9,10 @@
  * - 最下部: スタートボタン
  *
  * ## 選択状態の視覚フィードバック
- * - 選択中ボタン: fillAlpha 0.45 + Cyan 枠線
- * - 非選択 hover : fillAlpha 0.25 + Cyan 枠線
- * - 非選択 通常  : fillAlpha 0.15 + Primary 枠線
- * - Coming Soon  : グレーアウト + ポインタ不可
+ * - 選択中ボタン: fillAlpha 0.35 + Cyan 枠線 (UI_SECONDARY)
+ * - 非選択 hover : fillAlpha 0.6  + Cyan 枠線 (UI_SECONDARY)
+ * - 非選択 通常  : fillAlpha 0.4  + Primary 枠線 (UI_PRIMARY)
+ * - Coming Soon  : fillAlpha 0.15 + グレーアウト + ポインタ不可
  */
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
@@ -21,6 +21,8 @@ import {
   UI_SECONDARY,
   UI_TEXT_PRIMARY,
   UI_TEXT_DIM,
+  GLASS_FILL,
+  GLASS_FILL_ALPHA,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
@@ -278,7 +280,7 @@ export class TitleScene extends Container {
       text: label,
       style: {
         ...BUTTON_STYLE,
-        fill: disabled ? (0x555555 as number) : UI_TEXT_PRIMARY,
+        fill: disabled ? (UI_TEXT_DIM as number) : UI_TEXT_PRIMARY,
       },
     })
     t.anchor.set(0.5)
@@ -358,14 +360,14 @@ export class TitleScene extends Container {
     const y = cy - TOGGLE_H / 2
 
     const fillAlpha = disabled
-      ? 0.05
+      ? 0.15
       : selected
-        ? 0.4
+        ? 0.35
         : entry.hovered
-          ? 0.22
-          : 0.12
+          ? 0.6
+          : 0.4
     const borderColor = disabled
-      ? 0x444444
+      ? UI_TEXT_DIM
       : selected
         ? UI_SECONDARY
         : entry.hovered
@@ -396,13 +398,17 @@ export class TitleScene extends Container {
     const { graphics: g, hovered } = this.startEntry
     const x = -START_BTN_W / 2
     const y = START_BTN_Y - START_BTN_H / 2
-    const fillAlpha = hovered ? 0.35 : 0.2
-    const borderAlpha = hovered ? 0.9 : 0.5
+    const fillAlpha = hovered ? GLASS_FILL_ALPHA : 0.45
+    const borderAlpha = hovered ? 0.9 : 0.6
     const borderColor = hovered ? UI_SECONDARY : UI_PRIMARY
     g.clear()
     g.roundRect(x, y, START_BTN_W, START_BTN_H, RADIUS)
-      .fill({ color: UI_PRIMARY, alpha: fillAlpha })
-      .stroke({ color: borderColor, width: 1, alpha: borderAlpha })
+      .fill({ color: GLASS_FILL, alpha: fillAlpha })
+      .stroke({
+        color: borderColor,
+        width: hovered ? 2 : 1,
+        alpha: borderAlpha,
+      })
   }
 
   private refreshToggleGroup(): void {

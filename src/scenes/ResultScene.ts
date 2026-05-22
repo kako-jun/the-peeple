@@ -12,6 +12,9 @@ import {
   UI_SECONDARY,
   UI_TEXT_PRIMARY,
   UI_TEXT_DIM,
+  ANGER_LOW,
+  ANGER_HIGH,
+  COMMENT_GOLD,
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { GameStats } from '../game/types'
@@ -162,7 +165,7 @@ export class ResultScene extends Container {
     const comment = this.generateComment(stats)
     const commentText = new Text({
       text: comment,
-      style: { ...textStyle, fontSize: 13, fill: 0xcc8800 },
+      style: { ...textStyle, fontSize: 13, fill: COMMENT_GOLD },
     })
     commentText.anchor.set(0.5, 0)
     commentText.x = 0
@@ -210,7 +213,10 @@ export class ResultScene extends Container {
         const sign = info.score > 0 ? '+' : ''
         const line = new Text({
           text: `${info.desc.replace(/:.+/, '')} × ${info.count}  (${sign}${info.score})`,
-          style: { ...smallStyle, fill: info.score >= 0 ? 0x7fff7f : 0xff7f7f },
+          style: {
+            ...smallStyle,
+            fill: info.score >= 0 ? ANGER_LOW : ANGER_HIGH,
+          },
         })
         line.anchor.set(0.5, 0)
         line.x = 0

@@ -69,8 +69,8 @@ export const URINAL_OCCUPIED = 0xff6655
 /** 空き枠線（水色） */
 export const URINAL_EMPTY_BORDER = 0xaaccdd
 
-/** 「タップ」テキスト色 */
-export const URINAL_TAP_LABEL = 0x0077aa
+/** 「タップ」テキスト色（= UI_PRIMARY） */
+export const URINAL_TAP_LABEL = UI_PRIMARY
 
 // ──────────────────────────────────────────
 // 客タイプ別カラー
@@ -117,8 +117,8 @@ export const ANGER_BG = 0xc8dde8
 // 入口・施設カラー
 // ──────────────────────────────────────────
 
-/** 入口マーカー（緑） */
-export const ENTRANCE_COLOR = 0x22aa66
+/** 入口マーカー（緑、= CHAR_GROUP） */
+export const ENTRANCE_COLOR = CHAR_GROUP
 
 /** 入口枠線（白） */
 export const ENTRANCE_BORDER = 0xffffff
@@ -144,3 +144,10 @@ export const GLASS_BORDER_ALPHA = 0.9
 
 /** 外縁の影（淡い水色） */
 export const GLASS_SHADOW = 0xaaccdd
+
+// ──────────────────────────────────────────
+// テキスト装飾カラー
+// ──────────────────────────────────────────
+
+/** リザルト総評テキスト（琥珀金。白背景でコントラスト維持） */
+export const COMMENT_GOLD = 0xcc8800

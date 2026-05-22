@@ -11,10 +11,10 @@
  * - ミスが MAX_MISSES に達したらゲームオーバー。
  *
  * ## 客タイプ別の色
- * - NORMAL  : 青
- * - RUSHER  : オレンジ
- * - GROUP   : 緑
- * - DRUNK   : 紫
+ * - NORMAL  : 水色系の青 (CHAR_NORMAL)
+ * - RUSHER  : オレンジ、白背景に映える (CHAR_RUSHER)
+ * - GROUP   : 緑 (CHAR_GROUP)
+ * - DRUNK   : 紫 (CHAR_DRUNK)
  */
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
@@ -22,6 +22,8 @@ import type { TouchManager } from '../input/TouchManager'
 import {
   UI_TEXT_PRIMARY,
   UI_TEXT_DIM,
+  UI_TEXT_ON_DARK,
+  GLOSS_HIGHLIGHT,
   URINAL_BODY,
   URINAL_OCCUPIED,
   URINAL_EMPTY_BORDER,
@@ -236,13 +238,17 @@ export class PlayScene extends Container {
     if (!entry) return
     const { gfx, label } = entry
 
-    const color = u.state === 'OCCUPIED' ? URINAL_OCCUPIED : URINAL_BODY
+    const occupied = u.state === 'OCCUPIED'
+    const color = occupied ? URINAL_OCCUPIED : URINAL_BODY
+    const fillAlpha = occupied ? 0.9 : 0.95
+    const strokeColor = occupied ? GLOSS_HIGHLIGHT : URINAL_EMPTY_BORDER
+    const strokeAlpha = occupied ? 0.5 : 0.7
 
     gfx.clear()
     gfx
       .roundRect(u.x - u.width / 2, u.y - u.height / 2, u.width, u.height, 6)
-      .fill({ color, alpha: 0.85 })
-      .stroke({ color: URINAL_EMPTY_BORDER, width: 1.5, alpha: 0.6 })
+      .fill({ color, alpha: fillAlpha })
+      .stroke({ color: strokeColor, width: 1.5, alpha: strokeAlpha })
 
     label.x = u.x
     label.y = u.y + u.height / 2 + 10
@@ -269,7 +275,7 @@ export class PlayScene extends Container {
       style: {
         fontFamily: 'Inter, system-ui, sans-serif',
         fontSize: 12,
-        fill: 0xffffff,
+        fill: UI_TEXT_ON_DARK,
         align: 'center',
       },
     })
@@ -378,7 +384,7 @@ export class PlayScene extends Container {
     // ミス。
     this.hudMissText.text = `MISS: ${this.stats.misses}/${MAX_MISSES}`
     this.hudMissText.style.fill =
-      this.stats.misses >= MAX_MISSES - 1 ? 0xff4444 : UI_TEXT_PRIMARY
+      this.stats.misses >= MAX_MISSES - 1 ? ANGER_HIGH : UI_TEXT_PRIMARY
 
     // 苛立ちゲージ。
     const angerRatio = Math.min(1, this.stats.maxAnger / 100)
