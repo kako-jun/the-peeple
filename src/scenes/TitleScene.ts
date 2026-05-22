@@ -33,8 +33,8 @@ export interface TitleSelection {
 // ボタン定数
 // ---------------------------------------------------------------------------
 
-const WIDE_W = 144
-const TALL_H = 52
+const START_BTN_W = 144
+const START_BTN_H = 52
 const RADIUS = 8
 
 /** 選択トグルボタン1つの幅 (モード/難易度行)。 */
@@ -107,6 +107,7 @@ export class TitleScene extends Container {
   private modeEntries: ToggleEntry<GameMode>[] = []
   private diffEntries: ToggleEntry<Difficulty>[] = []
   private startEntry!: StartEntry
+  private subtitleText!: Text
 
   private readonly onStart: (sel: TitleSelection) => void
   private readonly soundManager: SoundManager | null
@@ -180,6 +181,7 @@ export class TitleScene extends Container {
     subtitle.alpha = 0.5
     subtitle.x = 0
     subtitle.y = SUBTITLE_Y
+    this.subtitleText = subtitle
     this.addChild(subtitle)
   }
 
@@ -203,7 +205,16 @@ export class TitleScene extends Container {
         m.label,
         cx,
         MODE_BTN_Y,
-        m.disabled
+        m.disabled,
+        v => {
+          this.selectedMode = v
+          // 副題をモードに合わせて更新。
+          const labels: Record<GameMode, string> = {
+            STAND_OFF: 'Stand Off',
+            LINE_RUSH: 'Line Rush',
+          }
+          this.subtitleText.text = labels[v]
+        }
       )
       this.modeEntries.push(entry)
       this.addChild(entry.graphics)
@@ -232,7 +243,10 @@ export class TitleScene extends Container {
         d.label,
         cx,
         DIFF_BTN_Y,
-        false
+        false,
+        v => {
+          this.selectedDiff = v
+        }
       )
       this.diffEntries.push(entry)
       this.addChild(entry.graphics)
@@ -246,7 +260,8 @@ export class TitleScene extends Container {
     label: string,
     cx: number,
     cy: number,
-    disabled: boolean
+    disabled: boolean,
+    onSelect: (value: T) => void
   ): ToggleEntry<T> {
     const g = new Graphics()
     if (!disabled) {
@@ -286,13 +301,8 @@ export class TitleScene extends Container {
         this.refreshToggleGroup()
       })
       g.on('pointertap', () => {
-        // どちらのグループかを判定して selectedMode / selectedDiff を更新。
-        if (this.modeEntries.some(e => e.value === (value as string))) {
-          this.selectedMode = value as unknown as GameMode
-        } else {
-          this.selectedDiff = value as unknown as Difficulty
-        }
         this.soundManager?.playSfx('ui-select')
+        onSelect(value)
         this.refreshToggleGroup()
       })
     }
@@ -379,13 +389,13 @@ export class TitleScene extends Container {
 
   private drawStartButton(): void {
     const { graphics: g, hovered } = this.startEntry
-    const x = -WIDE_W / 2
-    const y = START_BTN_Y - TALL_H / 2
+    const x = -START_BTN_W / 2
+    const y = START_BTN_Y - START_BTN_H / 2
     const fillAlpha = hovered ? 0.35 : 0.2
     const borderAlpha = hovered ? 0.9 : 0.5
     const borderColor = hovered ? UI_SECONDARY : UI_PRIMARY
     g.clear()
-    g.roundRect(x, y, WIDE_W, TALL_H, RADIUS)
+    g.roundRect(x, y, START_BTN_W, START_BTN_H, RADIUS)
       .fill({ color: UI_PRIMARY, alpha: fillAlpha })
       .stroke({ color: borderColor, width: 1, alpha: borderAlpha })
   }

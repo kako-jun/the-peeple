@@ -20,8 +20,7 @@ import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
 import type { TouchManager } from '../input/TouchManager'
 import { UI_TEXT_PRIMARY } from '../constants/colors'
-import type { Char, GameStats, Urinal } from '../game/types'
-import type { Difficulty } from '../game/types'
+import type { Char, Difficulty, GameStats, Urinal } from '../game/types'
 import {
   createUrinals,
   spawnChar,
@@ -38,9 +37,10 @@ import {
 
 const VIEW_H = 640
 
-/** キャラスポーン間隔 (ms)。難易度別に設定。 */
-const SPAWN_INTERVAL_NORMAL = 3000
-const SPAWN_INTERVAL_HARD = 1800
+/** NORMAL 難易度のスポーン間隔 (ms)。テスト用に export。 */
+export const SPAWN_INTERVAL_NORMAL = 3000
+/** HARD 難易度のスポーン間隔 (ms)。テスト用に export。 */
+export const SPAWN_INTERVAL_HARD = 1800
 
 /** ゲームオーバーになるミス数。 */
 const MAX_MISSES = 5
@@ -143,6 +143,11 @@ export class PlayScene extends Container {
   // 公開 API
   // -------------------------------------------------------------------------
 
+  /** 現在の難易度でのスポーン間隔 (ms)。テスト用。 */
+  getSpawnIntervalMs(): number {
+    return this.spawnIntervalMs
+  }
+
   /** ゲームオーバー時に呼ぶコールバックを登録。 */
   setOnGameOver(cb: (stats: GameStats) => void): void {
     this.onGameOver = cb
@@ -153,7 +158,12 @@ export class PlayScene extends Container {
     return this.stats
   }
 
-  /** ゲームをリセットして最初から始める。 */
+  /**
+   * ゲームをリセットして最初から始める。
+   *
+   * @deprecated difficulty が変わる場合は `destroy()` 後に新しい `PlayScene` を生成すること。
+   * 同一 difficulty で再スタートする場合のみ使用可。
+   */
   reset(): void {
     this.chars.length = 0
     this.stats = createGameStats()

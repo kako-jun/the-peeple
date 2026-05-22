@@ -21,10 +21,9 @@ const SCENE_TRANSFORMS = {
   title: { x: VIEW_W / 2, y: VIEW_H / 2, scale: 1 },
   play: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H, scale: 1 },
   result: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H * 2, scale: 1 },
+  // lineRush は play と同じ Y 位置: Stand Off の play エリアを共有。
   lineRush: { x: VIEW_W / 2, y: VIEW_H / 2 + VIEW_H, scale: 1 },
 } as const
-
-type ExtSceneKey = SceneKey | 'lineRush'
 
 async function bootstrap(): Promise<void> {
   const container = document.getElementById('root')
@@ -83,13 +82,13 @@ async function bootstrap(): Promise<void> {
   titleScene.y = SCENE_TRANSFORMS.title.y
   sceneManager.world.addChild(titleScene)
 
-  // Stand Off (Play) シーン — 後から difficulty 設定。
+  // Stand Off (Play) シーン — startGame 呼び出し時に difficulty を指定して再生成。
   let playScene = new PlayScene('NORMAL')
   playScene.x = SCENE_TRANSFORMS.play.x
   playScene.y = SCENE_TRANSFORMS.play.y
   sceneManager.world.addChild(playScene)
 
-  // ゲームオーバー / 時間切れを PlayScene から受け取る。
+  /** PlayScene のゲームオーバーコールバックを登録する。 */
   const setupPlayGameOver = (scene: PlayScene): void => {
     scene.setOnGameOver(stats => {
       resultScene.setResult({ kind: 'clear', stats })
@@ -99,8 +98,9 @@ async function bootstrap(): Promise<void> {
   }
   setupPlayGameOver(playScene)
 
-  // Line Rush シーン (stub)。
+  // Line Rush シーン (stub, Issue #19)。
   const lineRushScene = new LineRushScene({
+    soundManager: sound,
     onTitle: () => {
       setActiveScene('title')
       void sceneManager.navigateTo('title', 800)
@@ -114,6 +114,8 @@ async function bootstrap(): Promise<void> {
   const resultScene = new ResultScene({
     soundManager: sound,
     onRestart: () => {
+      // タイトルの現在選択値で再挑戦。
+      // タイトルに戻らずに同じ設定で即スタートするユーザー体験を意図している。
       const sel: TitleSelection = {
         mode: titleScene.getSelectedMode(),
         difficulty: titleScene.getSelectedDifficulty(),
@@ -132,6 +134,7 @@ async function bootstrap(): Promise<void> {
   sceneManager.registerScene('title', SCENE_TRANSFORMS.title)
   sceneManager.registerScene('play', SCENE_TRANSFORMS.play)
   sceneManager.registerScene('result', SCENE_TRANSFORMS.result)
+  sceneManager.registerScene('lineRush', SCENE_TRANSFORMS.lineRush)
   void sceneManager.navigateTo('title', 0)
   setActiveScene('title')
 
@@ -144,7 +147,7 @@ async function bootstrap(): Promise<void> {
   })
 
   // シーン遷移ハンドラ。
-  function setActiveScene(key: ExtSceneKey): void {
+  function setActiveScene(key: SceneKey): void {
     activeUnsub?.()
     activeUnsub = null
     isPlayActive = false
@@ -156,6 +159,7 @@ async function bootstrap(): Promise<void> {
       case 'play':
         isPlayActive = true
         activeUnsub = playScene.attachInputs(keyboard, touch, () => {
+          // Esc = ギブアップ。現在の stats で Result に遷移。
           resultScene.setResult({
             kind: 'gameover',
             stats: playScene.getStats(),
@@ -176,12 +180,13 @@ async function bootstrap(): Promise<void> {
 
   function startGame(sel: TitleSelection): void {
     if (sel.mode === 'LINE_RUSH') {
-      // Line Rush は stub シーンへ。
+      // Line Rush stub シーンへ遷移。
       setActiveScene('lineRush')
-      void sceneManager.navigateTo('play', 800) // play と同じ Y 位置。
+      void sceneManager.navigateTo('lineRush', 800)
       return
     }
-    // Stand Off: difficulty に合わせて PlayScene を再生成。
+    // Stand Off: difficulty を指定して PlayScene を再生成する。
+    // reset() ではなく再生成することで difficulty 変更を確実に反映する。
     const oldPlay = playScene
     const newPlay = new PlayScene(sel.difficulty)
     newPlay.x = SCENE_TRANSFORMS.play.x
@@ -189,7 +194,6 @@ async function bootstrap(): Promise<void> {
     setupPlayGameOver(newPlay)
     sceneManager.world.addChild(newPlay)
     playScene = newPlay
-    // 古い PlayScene を取り除く。
     sceneManager.world.removeChild(oldPlay)
     oldPlay.destroy()
 

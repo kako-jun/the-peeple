@@ -6,7 +6,11 @@
  * ゲームロジック自体は src/game/logic.test.ts で検証する。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PlayScene } from './PlayScene'
+import {
+  PlayScene,
+  SPAWN_INTERVAL_NORMAL,
+  SPAWN_INTERVAL_HARD,
+} from './PlayScene'
 import { KeyboardManager } from '../input/KeyboardManager'
 import { TouchManager } from '../input/TouchManager'
 
@@ -93,6 +97,26 @@ describe('PlayScene - Difficulty', () => {
   it('引数省略時は NORMAL 扱い (デフォルト値)', () => {
     const scene = new PlayScene()
     expect(scene).toBeTruthy()
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom */
+    }
+  })
+
+  it('NORMAL は SPAWN_INTERVAL_NORMAL (3000ms) を使う', () => {
+    const scene = new PlayScene('NORMAL')
+    expect(scene.getSpawnIntervalMs()).toBe(SPAWN_INTERVAL_NORMAL)
+    try {
+      scene.destroy()
+    } catch {
+      /* jsdom */
+    }
+  })
+
+  it('HARD は SPAWN_INTERVAL_HARD (1800ms) を使う', () => {
+    const scene = new PlayScene('HARD')
+    expect(scene.getSpawnIntervalMs()).toBe(SPAWN_INTERVAL_HARD)
     try {
       scene.destroy()
     } catch {

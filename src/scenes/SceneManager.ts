@@ -22,7 +22,7 @@ export interface SceneTransform {
   scale: number
 }
 
-export type SceneKey = 'title' | 'play' | 'result'
+export type SceneKey = 'title' | 'play' | 'result' | 'lineRush'
 
 /** デフォルトの tween 持続時間 (ms)。 */
 export const DEFAULT_TRANSITION_MS = 1000

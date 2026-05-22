@@ -16,7 +16,6 @@ import {
 } from './logic'
 import { evaluateAssignment } from './scoring'
 import type { Char, Urinal } from './types'
-import type { Difficulty } from './types'
 
 // ---------------------------------------------------------------------------
 // createUrinals
@@ -369,11 +368,5 @@ describe('spawnChar - Difficulty', () => {
       const char = spawnChar(0, 'NORMAL')
       expect(char.type).toBe('NORMAL')
     }
-  })
-
-  it('NORMAL と HARD で同じシードでも spawnIntervalMs が異なる (PlayScene 統合)', () => {
-    // spawnIntervalMs の値は PlayScene 内定数なので、ここでは型が正しいことのみ確認。
-    const d: Difficulty = 'HARD'
-    expect(d).toBe('HARD')
   })
 })
