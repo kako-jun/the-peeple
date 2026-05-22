@@ -1,5 +1,5 @@
 /**
- * ゲームロジックのユニットテスト (Issues #11, #12)。
+ * ゲームロジックのユニットテスト (Issues #11-#16)。
  */
 import { describe, expect, it, beforeEach } from 'vitest'
 import {
@@ -8,29 +8,31 @@ import {
   updateGame,
   assignToUrinal,
   resetCharIdCounter,
+  createGameStats,
   ENTRANCE_X,
   ENTRANCE_Y,
   queuePosition,
+  QUEUE_MAX,
 } from './logic'
 import type { Char, Urinal } from './types'
 
+// ---------------------------------------------------------------------------
+// createUrinals
+// ---------------------------------------------------------------------------
 describe('createUrinals', () => {
   it('4基の便器を生成する', () => {
-    const urinals = createUrinals(640)
-    expect(urinals).toHaveLength(4)
+    expect(createUrinals(640)).toHaveLength(4)
   })
 
   it('全便器の初期状態は EMPTY', () => {
-    const urinals = createUrinals(640)
-    for (const u of urinals) {
+    for (const u of createUrinals(640)) {
       expect(u.state).toBe('EMPTY')
       expect(u.occupantId).toBeNull()
     }
   })
 
   it('便器は横並び (Y が同じ)', () => {
-    const urinals = createUrinals(640)
-    const ys = urinals.map(u => u.y)
+    const ys = createUrinals(640).map(u => u.y)
     expect(new Set(ys).size).toBe(1)
   })
 
@@ -42,6 +44,9 @@ describe('createUrinals', () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// spawnChar
+// ---------------------------------------------------------------------------
 describe('spawnChar', () => {
   beforeEach(() => resetCharIdCounter())
 
@@ -51,9 +56,8 @@ describe('spawnChar', () => {
     expect(char.y).toBe(ENTRANCE_Y)
   })
 
-  it('初期状態は WALKING_TO_QUEUE', () => {
-    const char = spawnChar()
-    expect(char.state).toBe('WALKING_TO_QUEUE')
+  it('初期状態は ENTERING', () => {
+    expect(spawnChar().state).toBe('ENTERING')
   })
 
   it('連続生成でユニーク ID になる', () => {
@@ -61,9 +65,21 @@ describe('spawnChar', () => {
     const b = spawnChar()
     expect(a.id).not.toBe(b.id)
   })
+
+  it('type フィールドを持つ', () => {
+    const types = ['NORMAL', 'RUSHER', 'GROUP', 'DRUNK']
+    expect(types).toContain(spawnChar().type)
+  })
+
+  it('anger フィールドが 0 で初期化される', () => {
+    expect(spawnChar().anger).toBe(0)
+  })
 })
 
-describe('updateGame — WALKING_TO_QUEUE → QUEUING', () => {
+// ---------------------------------------------------------------------------
+// updateGame — ENTERING → QUEUING
+// ---------------------------------------------------------------------------
+describe('updateGame — ENTERING → QUEUING', () => {
   let chars: Char[]
   let urinals: Urinal[]
 
@@ -77,21 +93,59 @@ describe('updateGame — WALKING_TO_QUEUE → QUEUING', () => {
   })
 
   it('目標到達後に QUEUING になる', () => {
-    updateGame(chars, urinals, 1000)
+    updateGame(chars, urinals, createGameStats(), 1000)
     expect(chars[0].state).toBe('QUEUING')
   })
 })
 
-describe('updateGame — WALKING_OUT → 退室完了 (スコア加算・1回のみ)', () => {
+// ---------------------------------------------------------------------------
+// updateGame — 行列パンクミス
+// ---------------------------------------------------------------------------
+describe('updateGame — 行列パンク', () => {
   let chars: Char[]
   let urinals: Urinal[]
 
   beforeEach(() => {
     resetCharIdCounter()
     urinals = createUrinals(640)
-    // WALKING_OUT 状態のキャラを直接作成。TARGET まで残りわずか。
+    // QUEUE_MAX 人を QUEUING 状態で積んでおく。
+    chars = []
+    for (let i = 0; i < QUEUE_MAX; i++) {
+      const c = spawnChar()
+      c.state = 'QUEUING'
+      c.x = queuePosition(i).x
+      c.y = queuePosition(i).y
+      c.targetX = c.x
+      c.targetY = c.y
+      chars.push(c)
+    }
+    // 満員の状態で ENTERING キャラを追加。
+    const entering = spawnChar()
+    entering.targetX = entering.x + 1
+    entering.targetY = entering.y + 1
+    chars.push(entering)
+  })
+
+  it('パンク時に missCount が増える', () => {
+    const stats = createGameStats()
+    const { missCount } = updateGame(chars, urinals, stats, 1000)
+    expect(missCount).toBeGreaterThanOrEqual(1)
+    expect(stats.misses).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// updateGame — WALKING_OUT → 退室完了 (スコア加算・1回のみ)
+// ---------------------------------------------------------------------------
+describe('updateGame — LEAVING → 退室完了', () => {
+  let chars: Char[]
+  let urinals: Urinal[]
+
+  beforeEach(() => {
+    resetCharIdCounter()
+    urinals = createUrinals(640)
     chars = [spawnChar()]
-    chars[0].state = 'WALKING_OUT'
+    chars[0].state = 'LEAVING'
     chars[0].x = -299
     chars[0].y = 0
     chars[0].targetX = -300
@@ -99,22 +153,35 @@ describe('updateGame — WALKING_OUT → 退室完了 (スコア加算・1回の
   })
 
   it('EXIT_X 到達でスコアが 1 加算される', () => {
-    const score = updateGame(chars, urinals, 200)
-    expect(score).toBe(1)
+    const stats = createGameStats()
+    updateGame(chars, urinals, stats, 200)
+    expect(stats.score).toBe(1)
   })
 
   it('退室完了キャラは chars から削除される', () => {
-    updateGame(chars, urinals, 200)
+    updateGame(chars, urinals, createGameStats(), 200)
     expect(chars).toHaveLength(0)
   })
 
   it('次フレームでは同キャラのスコアが加算されない (二重カウント防止)', () => {
-    updateGame(chars, urinals, 200) // 退室完了・削除
-    const score2 = updateGame(chars, urinals, 200) // chars は空
-    expect(score2).toBe(0)
+    const stats = createGameStats()
+    updateGame(chars, urinals, stats, 200)
+    const prevScore = stats.score
+    updateGame(chars, urinals, stats, 200)
+    expect(stats.score).toBe(prevScore)
+  })
+
+  it('anger 満タンで退室したキャラはスコアが加算されない', () => {
+    chars[0].anger = 100
+    const stats = createGameStats()
+    updateGame(chars, urinals, stats, 200)
+    expect(stats.score).toBe(0)
   })
 })
 
+// ---------------------------------------------------------------------------
+// assignToUrinal
+// ---------------------------------------------------------------------------
 describe('assignToUrinal', () => {
   let chars: Char[]
   let urinals: Urinal[]
@@ -123,40 +190,45 @@ describe('assignToUrinal', () => {
     resetCharIdCounter()
     urinals = createUrinals(640)
     chars = [spawnChar()]
-    // 直接 QUEUING 状態にする。
     chars[0].state = 'QUEUING'
   })
 
   it('空き便器へ先頭キャラを割り当てられる', () => {
-    const ok = assignToUrinal(chars, urinals, 0)
+    const stats = createGameStats()
+    const ok = assignToUrinal(chars, urinals, stats, 0)
     expect(ok).toBe(true)
-    expect(chars[0].state).toBe('WALKING_TO_URINAL')
-    expect(chars[0].assignedUrinalId).toBe(0)
+    expect(chars[0].state).toBe('APPROACHING')
     expect(urinals[0].state).toBe('OCCUPIED')
   })
 
   it('QUEUING キャラがいないと割り当て失敗', () => {
-    chars[0].state = 'WALKING_TO_QUEUE'
-    const ok = assignToUrinal(chars, urinals, 0)
+    chars[0].state = 'ENTERING'
+    const ok = assignToUrinal(chars, urinals, createGameStats(), 0)
     expect(ok).toBe(false)
   })
 
   it('既に OCCUPIED の便器には割り当て失敗', () => {
     urinals[0].state = 'OCCUPIED'
-    const ok = assignToUrinal(chars, urinals, 0)
+    const ok = assignToUrinal(chars, urinals, createGameStats(), 0)
     expect(ok).toBe(false)
+  })
+
+  it('割当時にスコアリングルールが適用される', () => {
+    const stats = createGameStats()
+    assignToUrinal(chars, urinals, stats, 0) // 端の便器
+    expect(stats.appliedRules.length).toBeGreaterThan(0)
   })
 })
 
+// ---------------------------------------------------------------------------
+// queuePosition
+// ---------------------------------------------------------------------------
 describe('queuePosition', () => {
   it('index 0 は先頭位置', () => {
-    const pos = queuePosition(0)
-    expect(pos.x).toBe(0)
+    expect(queuePosition(0).x).toBe(0)
   })
 
   it('index が増えるほど Y が減る (上に並ぶ)', () => {
-    const p0 = queuePosition(0)
-    const p1 = queuePosition(1)
-    expect(p1.y).toBeLessThan(p0.y)
+    expect(queuePosition(1).y).toBeLessThan(queuePosition(0).y)
   })
 })

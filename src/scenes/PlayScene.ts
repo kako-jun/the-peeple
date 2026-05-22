@@ -1,5 +1,5 @@
 /**
- * プレイ画面 (Issues #11, #12)。
+ * プレイ画面 (Issues #11-#16)。
  *
  * ## レイアウト (360×640、PixiJS ローカル座標: 中央 = 0,0)
  *
@@ -7,30 +7,44 @@
  * - キャラが入口 → 中央待機列 (0, -40) へ歩く。
  * - プレイヤーが便器をタップ → 先頭キャラを誘導。
  * - 便器は下部に4基横並び。
+ * - 上部に HUD (時間 / スコア / ミス / 苛立ちゲージ)。
+ * - ミスが MAX_MISSES に達したらゲームオーバー。
  *
- * ## 入力
- * - キーボード Esc → ギブアップ (onExit)。
- * - Pixi の pointerdown (便器タップ) → assignToUrinal。
+ * ## 客タイプ別の色
+ * - NORMAL  : 青
+ * - RUSHER  : オレンジ
+ * - GROUP   : 緑
+ * - DRUNK   : 紫
  */
 import { Container, Graphics, Text } from 'pixi.js'
 import type { KeyboardCommand, KeyboardManager } from '../input/KeyboardManager'
 import type { TouchManager } from '../input/TouchManager'
 import { UI_TEXT_PRIMARY } from '../constants/colors'
-import type { Char, Urinal } from '../game/types'
+import type { Char, GameStats, Urinal } from '../game/types'
 import {
   createUrinals,
   spawnChar,
   updateGame,
   assignToUrinal,
+  createGameStats,
   ENTRANCE_X,
   ENTRANCE_Y,
 } from '../game/logic'
 
-// --- レイアウト定数 ---
+// ---------------------------------------------------------------------------
+// 定数
+// ---------------------------------------------------------------------------
+
 const VIEW_H = 640
 
 /** キャラスポーン間隔 (ms)。 */
 const SPAWN_INTERVAL_MS = 3000
+
+/** ゲームオーバーになるミス数。 */
+const MAX_MISSES = 5
+
+/** ゲーム時間 (ms)。0 = 無制限。 */
+const GAME_DURATION_MS = 90000 // 90秒
 
 /** 便器の色。 */
 const URINAL_COLOR_EMPTY = 0x4a9eff
@@ -43,34 +57,64 @@ const ENTRANCE_H = 28
 /** キャラ描画半径。 */
 const CHAR_R = 10
 
-interface UrinalGraphics {
+/** 客タイプ別の色。 */
+const CHAR_COLORS: Record<string, number> = {
+  NORMAL: 0x3498db,
+  RUSHER: 0xe67e22,
+  GROUP: 0x27ae60,
+  DRUNK: 0x9b59b6,
+}
+
+// ---------------------------------------------------------------------------
+// 内部型
+// ---------------------------------------------------------------------------
+
+interface UrinalEntry {
   id: number
   gfx: Graphics
   label: Text
 }
 
-interface CharGraphics {
+interface CharEntry {
   id: number
   gfx: Graphics
+  angerBar: Graphics
 }
+
+// ---------------------------------------------------------------------------
+// PlayScene
+// ---------------------------------------------------------------------------
 
 export class PlayScene extends Container {
   private readonly urinals: Urinal[]
   private readonly chars: Char[] = []
+  private stats: GameStats
 
-  private readonly urinalGfxMap = new Map<number, UrinalGraphics>()
-  private readonly charGfxMap = new Map<number, CharGraphics>()
+  private readonly urinalGfxMap = new Map<number, UrinalEntry>()
+  private readonly charGfxMap = new Map<number, CharEntry>()
 
   private readonly urinalLayer: Container
   private readonly charLayer: Container
   private readonly hudLayer: Container
 
   private spawnAccum = 0
-  private score = 0
-  private scoreText!: Text
+
+  // HUD テキスト。
+  private hudTimeText!: Text
+  private hudScoreText!: Text
+  private hudMissText!: Text
+  private hudAngerBar!: Graphics
+  private hudAngerLabel!: Text
+
+  /** ゲームオーバー / 時間切れ時に呼ばれるコールバック。 */
+  private onGameOver: ((stats: GameStats) => void) | null = null
+
+  private gameEnded = false
 
   constructor() {
     super()
+
+    this.stats = createGameStats()
 
     this.urinalLayer = new Container()
     this.charLayer = new Container()
@@ -82,13 +126,46 @@ export class PlayScene extends Container {
     this.urinals = createUrinals(VIEW_H)
     this.buildUrinalGraphics()
     this.buildEntrance()
-    this.buildHud()
     this.buildQueueMarker()
+    this.buildHud()
   }
 
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // 公開 API
+  // -------------------------------------------------------------------------
+
+  /** ゲームオーバー時に呼ぶコールバックを登録。 */
+  setOnGameOver(cb: (stats: GameStats) => void): void {
+    this.onGameOver = cb
+  }
+
+  /** 最終 stats を取得 (Result 画面用)。 */
+  getStats(): GameStats {
+    return this.stats
+  }
+
+  /** ゲームをリセットして最初から始める。 */
+  reset(): void {
+    this.chars.length = 0
+    this.stats = createGameStats()
+    this.spawnAccum = 0
+    this.gameEnded = false
+    // 便器をすべて EMPTY に。
+    for (const u of this.urinals) {
+      u.state = 'EMPTY'
+      u.occupantId = null
+    }
+    // charGfxMap をクリア。
+    for (const entry of this.charGfxMap.values()) {
+      entry.gfx.destroy()
+      entry.angerBar.destroy()
+    }
+    this.charGfxMap.clear()
+  }
+
+  // -------------------------------------------------------------------------
   // 構築ヘルパー
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
 
   private buildUrinalGraphics(): void {
     for (const u of this.urinals) {
@@ -96,7 +173,8 @@ export class PlayScene extends Container {
       gfx.eventMode = 'static'
       gfx.cursor = 'pointer'
       gfx.on('pointerdown', () => {
-        assignToUrinal(this.chars, this.urinals, u.id)
+        if (this.gameEnded) return
+        assignToUrinal(this.chars, this.urinals, this.stats, u.id)
       })
       this.urinalLayer.addChild(gfx)
 
@@ -126,19 +204,16 @@ export class PlayScene extends Container {
       u.state === 'OCCUPIED' ? URINAL_COLOR_OCCUPIED : URINAL_COLOR_EMPTY
 
     gfx.clear()
-    // 便器本体 (角丸矩形)。
     gfx
       .roundRect(u.x - u.width / 2, u.y - u.height / 2, u.width, u.height, 6)
       .fill({ color, alpha: 0.85 })
       .stroke({ color: 0xffffff, width: 1.5, alpha: 0.4 })
 
-    // タップ誘導テキスト (空のときだけ)。
     label.x = u.x
     label.y = u.y + u.height / 2 + 10
     label.text = u.state === 'EMPTY' ? 'タップ' : ''
   }
 
-  /** 入口マーカー (左上)。 */
   private buildEntrance(): void {
     const gfx = new Graphics()
     gfx
@@ -168,12 +243,10 @@ export class PlayScene extends Container {
     this.addChild(label)
   }
 
-  /** 中央待機列マーカー (薄い点線風)。 */
   private buildQueueMarker(): void {
     const gfx = new Graphics()
-    // 縦の破線ガイド (ループで短い線を並べる)。
     const x = 0
-    const yTop = -160
+    const yTop = -180
     const yBottom = -40
     const dashLen = 6
     const dashGap = 8
@@ -193,88 +266,191 @@ export class PlayScene extends Container {
       },
     })
     label.anchor.set(0.5)
-    label.x = 28 // QUEUE_X=0 から少し右にオフセット (ガイド線と重ならないよう)
-    label.y = -100
+    label.x = 28
+    label.y = -110
     this.addChild(label)
   }
 
-  /** HUD (スコア表示)。 */
+  /** HUD: 画面上部に時間 / スコア / ミス + 苛立ちゲージ。 */
   private buildHud(): void {
-    this.scoreText = new Text({
-      text: 'スコア: 0',
-      style: {
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: 18,
-        fontWeight: '600',
-        fill: UI_TEXT_PRIMARY,
-      },
+    const TOP = -VIEW_H / 2 + 8
+    const textStyle = {
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontSize: 14,
+      fontWeight: '600' as const,
+      fill: UI_TEXT_PRIMARY,
+    }
+
+    // 時間 (左)。
+    this.hudTimeText = new Text({ text: '90s', style: textStyle })
+    this.hudTimeText.anchor.set(0, 0)
+    this.hudTimeText.x = -170
+    this.hudTimeText.y = TOP
+    this.hudLayer.addChild(this.hudTimeText)
+
+    // スコア (中央)。
+    this.hudScoreText = new Text({
+      text: 'SCORE: 0',
+      style: { ...textStyle, fontSize: 16 },
     })
-    this.scoreText.anchor.set(0.5, 0)
-    this.scoreText.x = 0
-    this.scoreText.y = -VIEW_H / 2 + 12
-    this.hudLayer.addChild(this.scoreText)
+    this.hudScoreText.anchor.set(0.5, 0)
+    this.hudScoreText.x = 0
+    this.hudScoreText.y = TOP
+    this.hudLayer.addChild(this.hudScoreText)
+
+    // ミス (右)。
+    this.hudMissText = new Text({
+      text: `MISS: 0/${MAX_MISSES}`,
+      style: textStyle,
+    })
+    this.hudMissText.anchor.set(1, 0)
+    this.hudMissText.x = 170
+    this.hudMissText.y = TOP
+    this.hudLayer.addChild(this.hudMissText)
+
+    // 苛立ちゲージ背景。
+    const bgBar = new Graphics()
+    bgBar
+      .roundRect(-80, TOP + 24, 160, 8, 4)
+      .fill({ color: 0x333333, alpha: 0.8 })
+    this.hudLayer.addChild(bgBar)
+
+    // 苛立ちゲージ本体 (毎フレーム更新)。
+    this.hudAngerBar = new Graphics()
+    this.hudLayer.addChild(this.hudAngerBar)
+
+    // 苛立ちラベル。
+    this.hudAngerLabel = new Text({
+      text: '苛立ち',
+      style: { ...textStyle, fontSize: 10, fill: 0xaaaaaa },
+    })
+    this.hudAngerLabel.anchor.set(0, 0)
+    this.hudAngerLabel.x = -80
+    this.hudAngerLabel.y = TOP + 34
+    this.hudLayer.addChild(this.hudAngerLabel)
   }
 
-  // -----------------------------------------------------------------------
-  // キャラ描画
-  // -----------------------------------------------------------------------
+  private updateHud(): void {
+    // 残り時間。
+    const remaining = Math.max(0, GAME_DURATION_MS - this.stats.elapsed)
+    const sec = Math.ceil(remaining / 1000)
+    this.hudTimeText.text = `${sec}s`
 
-  private getOrCreateCharGfx(char: Char): Graphics {
+    // スコア。
+    this.hudScoreText.text = `SCORE: ${this.stats.score}`
+
+    // ミス。
+    this.hudMissText.text = `MISS: ${this.stats.misses}/${MAX_MISSES}`
+    this.hudMissText.style.fill =
+      this.stats.misses >= MAX_MISSES - 1 ? 0xff4444 : UI_TEXT_PRIMARY
+
+    // 苛立ちゲージ。
+    const angerRatio = Math.min(1, this.stats.maxAnger / 100)
+    const barW = Math.round(160 * angerRatio)
+    const angerColor =
+      angerRatio > 0.8 ? 0xff2222 : angerRatio > 0.5 ? 0xff8800 : 0xffcc00
+    const TOP = -VIEW_H / 2 + 8
+    this.hudAngerBar.clear()
+    if (barW > 0) {
+      this.hudAngerBar
+        .roundRect(-80, TOP + 24, barW, 8, 4)
+        .fill({ color: angerColor, alpha: 0.9 })
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // キャラ描画
+  // -------------------------------------------------------------------------
+
+  private getOrCreateCharEntry(char: Char): CharEntry {
     let entry = this.charGfxMap.get(char.id)
     if (!entry) {
       const gfx = new Graphics()
+      const angerBar = new Graphics()
       this.charLayer.addChild(gfx)
-      entry = { id: char.id, gfx }
+      this.charLayer.addChild(angerBar)
+      entry = { id: char.id, gfx, angerBar }
       this.charGfxMap.set(char.id, entry)
     }
-    return entry.gfx
+    return entry
   }
 
   private syncCharGraphics(): void {
-    // 生存キャラ描画。
     const aliveIds = new Set(this.chars.map(c => c.id))
+
     for (const char of this.chars) {
-      const gfx = this.getOrCreateCharGfx(char)
-      gfx.clear()
+      const entry = this.getOrCreateCharEntry(char)
+      const { gfx, angerBar } = entry
+
+      // キャラ本体。
+      const baseColor = CHAR_COLORS[char.type] ?? 0x3498db
       const color =
         char.state === 'USING'
           ? 0xf39c12
-          : char.state === 'QUEUING'
-            ? 0x3498db
-            : char.state === 'WALKING_OUT'
-              ? 0x95a5a6
-              : 0x2ecc71
+          : char.state === 'LEAVING'
+            ? 0x95a5a6
+            : baseColor
+      gfx.clear()
       gfx
         .circle(char.x, char.y, CHAR_R)
         .fill({ color, alpha: 0.9 })
         .stroke({ color: 0xffffff, width: 1.5, alpha: 0.7 })
+
+      // 客タイプのイニシャル。
+      // (テキストを毎フレーム生成するのは重いので Graphics のみとし文字省略)
+
+      // 苛立ちゲージ (キャラ頭上の小さいバー)。
+      angerBar.clear()
+      if (char.state === 'QUEUING' && char.anger > 0) {
+        const barW = CHAR_R * 2
+        const ratio = char.anger / 100
+        const bColor =
+          ratio > 0.8 ? 0xff2222 : ratio > 0.5 ? 0xff8800 : 0xffee00
+        angerBar
+          .rect(
+            char.x - CHAR_R,
+            char.y - CHAR_R - 5,
+            Math.round(barW * ratio),
+            3
+          )
+          .fill({ color: bColor, alpha: 0.9 })
+      }
     }
-    // 退室済み (chars から消えた) キャラの gfx を削除。
+
+    // 退室済みキャラの gfx を削除。
     for (const [id, entry] of this.charGfxMap) {
       if (!aliveIds.has(id)) {
         entry.gfx.destroy()
+        entry.angerBar.destroy()
         this.charGfxMap.delete(id)
       }
     }
   }
 
-  // -----------------------------------------------------------------------
-  // 更新 (ticker から呼ぶ)
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // 更新 (Ticker から呼ぶ)
+  // -------------------------------------------------------------------------
 
   update(deltaMS: number): void {
+    if (this.gameEnded) return
+
     // スポーン。
     this.spawnAccum += deltaMS
     if (this.spawnAccum >= SPAWN_INTERVAL_MS) {
       this.spawnAccum -= SPAWN_INTERVAL_MS
-      this.chars.push(spawnChar())
+      this.chars.push(spawnChar(this.stats.elapsed))
     }
 
     // ゲームロジック更新。
-    const gained = updateGame(this.chars, this.urinals, deltaMS)
-    this.score += gained
-    if (gained > 0) {
-      this.scoreText.text = `スコア: ${this.score}`
+    updateGame(this.chars, this.urinals, this.stats, deltaMS)
+
+    // ゲームオーバー判定。
+    const timeUp =
+      GAME_DURATION_MS > 0 && this.stats.elapsed >= GAME_DURATION_MS
+    const missOut = this.stats.misses >= MAX_MISSES
+    if (timeUp || missOut) {
+      this.gameEnded = true
+      this.onGameOver?.(this.stats)
     }
 
     // 描画同期。
@@ -282,11 +458,12 @@ export class PlayScene extends Container {
     for (const u of this.urinals) {
       this.redrawUrinal(u)
     }
+    this.updateHud()
   }
 
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   // 入力
-  // -----------------------------------------------------------------------
+  // -------------------------------------------------------------------------
 
   attachInputs(
     keyboard: KeyboardManager,
