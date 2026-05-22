@@ -136,8 +136,12 @@ async function bootstrap(): Promise<void> {
   setActiveScene('title')
 
   // 1 個の Ticker で全部を回す。
+  let isPlayActive = false
   app.ticker.add(ticker => {
     sceneManager.update(ticker.deltaMS)
+    if (isPlayActive) {
+      playScene.update(ticker.deltaMS)
+    }
   })
 
   // --------------------------------------------------------------------
@@ -149,9 +153,11 @@ async function bootstrap(): Promise<void> {
     activeUnsub = null
     switch (key) {
       case 'title':
+        isPlayActive = false
         activeUnsub = titleScene.attachInputs(keyboard)
         break
       case 'play':
+        isPlayActive = true
         activeUnsub = playScene.attachInputs(keyboard, touch, () => {
           // Esc はギブアップ扱いで Result へ遷移する (Issue #10)。
           // スコアは未実装のため undefined (score 行は非表示)。
@@ -161,6 +167,7 @@ async function bootstrap(): Promise<void> {
         })
         break
       case 'result':
+        isPlayActive = false
         activeUnsub = resultScene.attachInputs(keyboard)
         break
     }
