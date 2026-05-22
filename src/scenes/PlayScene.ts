@@ -43,6 +43,7 @@ import {
   ENTRANCE_BORDER,
   QUEUE_LINE,
 } from '../constants/colors'
+import type { SoundManager } from '../audio/SoundManager'
 import type { Char, Difficulty, GameStats, Urinal } from '../game/types'
 import {
   createUrinals,
@@ -139,9 +140,12 @@ export class PlayScene extends Container {
 
   private gameEnded = false
 
-  constructor(difficulty: Difficulty = 'NORMAL') {
+  private readonly soundManager: SoundManager | null
+
+  constructor(difficulty: Difficulty = 'NORMAL', soundManager?: SoundManager) {
     super()
 
+    this.soundManager = soundManager ?? null
     this.difficulty = difficulty
     this.spawnIntervalMs =
       difficulty === 'HARD' ? SPAWN_INTERVAL_HARD : SPAWN_INTERVAL_NORMAL
@@ -160,6 +164,9 @@ export class PlayScene extends Container {
     this.buildEntrance()
     this.buildQueueMarker()
     this.buildHud()
+
+    // BGM 開始。
+    this.soundManager?.playBgm('bgm-play')
   }
 
   // -------------------------------------------------------------------------
@@ -218,7 +225,8 @@ export class PlayScene extends Container {
       gfx.cursor = 'pointer'
       gfx.on('pointerdown', () => {
         if (this.gameEnded) return
-        assignToUrinal(this.chars, this.urinals, this.stats, u.id)
+        const ok = assignToUrinal(this.chars, this.urinals, this.stats, u.id)
+        if (ok) this.soundManager?.playSfx('sfx-assign')
       })
       this.urinalLayer.addChild(gfx)
 
@@ -550,7 +558,11 @@ export class PlayScene extends Container {
     }
 
     // ゲームロジック更新。
+    const prevMisses = this.stats.misses
     updateGame(this.chars, this.urinals, this.stats, deltaMS)
+    if (this.stats.misses > prevMisses) {
+      this.soundManager?.playSfx('sfx-miss')
+    }
 
     // ゲームオーバー判定。
     const timeUp =
@@ -558,6 +570,12 @@ export class PlayScene extends Container {
     const missOut = this.stats.misses >= MAX_MISSES
     if (timeUp || missOut) {
       this.gameEnded = true
+      if (missOut) {
+        this.soundManager?.playSfx('sfx-gameover')
+      } else {
+        this.soundManager?.playSfx('sfx-clear')
+      }
+      this.soundManager?.stopBgm(300)
       this.onGameOver?.(this.stats)
     }
 

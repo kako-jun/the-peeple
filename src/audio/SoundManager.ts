@@ -1,77 +1,48 @@
 /**
- * サウンドマネージャ (Issue #22)。
+ * サウンドマネージャ (Issue #22, #28)。
  *
- * WebAudio API + HTMLAudioElement のシンプルな組み合わせで、
- * SFX (短い効果音) と BGM (ループ再生) を扱う。
- *
- * 設計方針:
- * - 重い音声ライブラリ (Howler / Tone) は導入しない。`HTMLAudioElement` で
- *   足りる範囲を意図的に選ぶ。
- * - **アセットが無くても落ちない**。`Audio` の `error` イベントは黙って無視する。
- *   将来 `public/sounds/` に音ファイルを置けばそのまま鳴り出す。
- * - 各 SFX 再生はクローン (`new Audio(src)`) を毎回作って同時再生に耐える。
- *   再生終了後の片付けはブラウザ側の GC に任せる。
- * - BGM は 1 個の `HTMLAudioElement` を使い回し、`fadeMs` を指定された場合は
- *   `volume` 補間でクロスフェードする。
- * - ミュート状態は `localStorage` (key: `the_peeple_muted`) に永続化する。
- *   `loadPersisted()` で復元、`setMuted` / `toggleMute` で更新時に自動保存。
- * - `unlock()` を初回ユーザー操作時に呼ぶと、Safari/iOS 系のオートプレイ
- *   ポリシーを回避できる (空の `AudioContext` を resume するだけ)。
- *
- * 注意: PixiJS の WebAudio とは独立に動く。Pixi 側のリソース管理に
- * 巻き込まれないので、シーン遷移時に勝手に停止されない。
+ * WebAudio API の手続き型音響 (synth.ts) で SFX/BGM を生成する。
+ * 外部ファイル (.mp3/.ogg) は不要。
  */
 
-export type SfxKey =
-  | 'block-land'
-  | 'block-spawn'
-  | 'block-clear'
-  | 'chain-up'
-  | 'puzzle-cleared'
-  | 'game-over'
-  | 'ui-select'
+import {
+  playSfxAssign,
+  playSfxMiss,
+  playSfxGameover,
+  playSfxClear,
+  playSfxUiSelect,
+  startBgmPlay,
+  stopBgmPlay,
+} from './synth'
 
-export type BgmKey = 'bgm-title' | 'bgm-game' | 'bgm-versus' | 'bgm-result'
+export type SfxKey =
+  | 'sfx-assign' // 便器タップ・誘導成功
+  | 'sfx-miss' // ミス（怒り満タン / 行列パンク）
+  | 'sfx-gameover' // ゲームオーバー
+  | 'sfx-clear' // タイム終了（クリア）
+  | 'ui-select' // UI 選択
+
+export type BgmKey = 'bgm-play' | 'bgm-title'
 
 export interface SoundManagerOptions {
   /** 初期ミュート (loadPersisted で上書きされる)。 */
   muted?: boolean
-  /** SFX 音量 0.0 〜 1.0。既定 0.7。 */
-  sfxVolume?: number
-  /** BGM 音量 0.0 〜 1.0。既定 0.4。 */
-  bgmVolume?: number
-  /** アセットの配置ルート。既定 `/sounds/`。 */
-  basePath?: string
 }
 
 /** localStorage キー。 */
 const STORAGE_KEY = 'the_peeple_muted'
 
-/**
- * BGM のフェード補間で使う最小タイマー間隔 (ms)。
- * 16ms ≒ 60fps。requestAnimationFrame と独立に動かしたいので setInterval を使う。
- */
-const FADE_TICK_MS = 16
-
 export class SoundManager {
   private muted: boolean
-  private sfxVolume: number
-  private bgmVolume: number
-  private basePath: string
-  /** Safari/iOS のオートプレイ解除用。null のままでも SFX 自体は鳴る (= HTMLAudio で再生)。 */
+  /** Safari/iOS のオートプレイ解除用。 */
   private ctx: AudioContext | null = null
   private currentBgm: HTMLAudioElement | null = null
   private currentBgmKey: BgmKey | null = null
-  /** 進行中のフェードを止めるためのインターバル ID。 */
-  private fadeTimer: ReturnType<typeof setInterval> | null = null
   /** ミュート切替や永続化リスナー (UI 表示更新用)。 */
   private readonly muteListeners: Set<(muted: boolean) => void> = new Set()
 
   constructor(opts: SoundManagerOptions = {}) {
     this.muted = opts.muted ?? false
-    this.sfxVolume = clamp01(opts.sfxVolume ?? 0.7)
-    this.bgmVolume = clamp01(opts.bgmVolume ?? 0.4)
-    this.basePath = opts.basePath ?? '/sounds/'
   }
 
   /**
@@ -138,23 +109,27 @@ export class SoundManager {
    */
   playSfx(key: SfxKey): void {
     if (this.muted) return
-    if (typeof Audio === 'undefined') return
-    let audio: HTMLAudioElement
-    try {
-      audio = new Audio(`${this.basePath}${key}.mp3`)
-    } catch {
-      return
-    }
-    audio.volume = this.sfxVolume
-    // 404 や decode 失敗で error が飛んでくる。listener を貼って黙殺。
-    audio.addEventListener('error', () => {
-      /* asset missing: 無視 */
-    })
-    const p = audio.play()
-    if (p && typeof p.then === 'function') {
-      p.catch(() => {
-        /* オートプレイ拒否や 404: 無視 */
-      })
+    this.synthSfx(key)
+  }
+
+  /** Web Audio API で SFX を直接生成する。 */
+  synthSfx(key: SfxKey): void {
+    switch (key) {
+      case 'sfx-assign':
+        playSfxAssign()
+        break
+      case 'sfx-miss':
+        playSfxMiss()
+        break
+      case 'sfx-gameover':
+        playSfxGameover()
+        break
+      case 'sfx-clear':
+        playSfxClear()
+        break
+      case 'ui-select':
+        playSfxUiSelect()
+        break
     }
   }
 
@@ -162,110 +137,33 @@ export class SoundManager {
   // BGM
   // ----------------------------------------------------------------------
 
-  /**
-   * BGM を再生する。
-   * - 同じ key が既に再生中なら no-op。
-   * - 異なる key なら、前の BGM をフェードアウトしながら新しい BGM をフェードインする。
-   * - ミュート中は currentBgm を差し替えるが play() は呼ばない。setMuted(false) 時に再開。
-   */
   playBgm(key: BgmKey, opts: { loop?: boolean; fadeMs?: number } = {}): void {
-    if (typeof Audio === 'undefined') return
-    if (this.currentBgmKey === key && this.currentBgm) {
-      // 同じトラックは何もしない (上書き fade で音量が暴れるのを防ぐ)。
-      return
-    }
-
-    const loop = opts.loop ?? true
-    const fadeMs = opts.fadeMs ?? 0
-
-    // 前の BGM のフェードを停止。
-    this.stopFadeTimer()
-
-    const prev = this.currentBgm
-    let next: HTMLAudioElement
-    try {
-      next = new Audio(`${this.basePath}${key}.mp3`)
-    } catch {
-      return
-    }
-    next.loop = loop
-    next.volume = fadeMs > 0 ? 0 : this.bgmVolume
-    next.addEventListener('error', () => {
-      /* asset missing: 無視 */
-    })
-
-    this.currentBgm = next
+    if (this.muted) return
+    if (this.currentBgmKey === key) return
+    // 前の BGM を停止。
+    this.synthBgmStop()
     this.currentBgmKey = key
-
-    if (!this.muted) {
-      const p = next.play()
-      if (p && typeof p.then === 'function') {
-        p.catch(() => {
-          /* オートプレイ拒否は unlock 後に再試行 */
-        })
-      }
+    if (key === 'bgm-play') {
+      this.synthBgmPlay()
     }
-
-    if (fadeMs <= 0) {
-      // 即時切替。
-      if (prev) {
-        prev.pause()
-        prev.src = ''
-      }
-      return
-    }
-
-    // クロスフェード。
-    const steps = Math.max(1, Math.floor(fadeMs / FADE_TICK_MS))
-    let i = 0
-    const prevStartVol = prev ? prev.volume : 0
-    const target = this.bgmVolume
-    this.fadeTimer = setInterval(() => {
-      i++
-      const t = Math.min(1, i / steps)
-      next.volume = target * t
-      if (prev) prev.volume = prevStartVol * (1 - t)
-      if (t >= 1) {
-        if (prev) {
-          prev.pause()
-          prev.src = ''
-        }
-        this.stopFadeTimer()
-      }
-    }, FADE_TICK_MS)
+    // bgm-title は no-op。
+    void opts
   }
 
-  /** 現在の BGM を止める。fadeMs > 0 ならフェードアウト。 */
-  stopBgm(fadeMs: number = 0): void {
-    const cur = this.currentBgm
-    if (!cur) return
-    this.stopFadeTimer()
+  /** bgm-play 手続き型ループを開始する。 */
+  synthBgmPlay(): void {
+    startBgmPlay()
+  }
 
-    if (fadeMs <= 0) {
-      cur.pause()
-      cur.src = ''
-      this.currentBgm = null
-      this.currentBgmKey = null
-      return
-    }
+  /** bgm-play 手続き型ループを停止する。 */
+  synthBgmStop(): void {
+    stopBgmPlay()
+  }
 
-    const steps = Math.max(1, Math.floor(fadeMs / FADE_TICK_MS))
-    const startVol = cur.volume
-    let i = 0
-    this.fadeTimer = setInterval(() => {
-      i++
-      const t = Math.min(1, i / steps)
-      cur.volume = startVol * (1 - t)
-      if (t >= 1) {
-        cur.pause()
-        cur.src = ''
-        if (this.currentBgm === cur) {
-          this.currentBgm = null
-          this.currentBgmKey = null
-        }
-        this.stopFadeTimer()
-      }
-    }, FADE_TICK_MS)
+  /** 現在の BGM を止める。fadeMs は互換性のために受け取るが現在は無視。 */
+  stopBgm(_fadeMs: number = 0): void {
+    this.synthBgmStop()
+    this.currentBgmKey = null
   }
 
   /** 現在再生中の BGM キー (デバッグ・テスト用)。 */
@@ -280,17 +178,10 @@ export class SoundManager {
   setMuted(muted: boolean): void {
     if (this.muted === muted) return
     this.muted = muted
-    if (this.currentBgm) {
-      if (muted) {
-        this.currentBgm.pause()
-      } else {
-        const p = this.currentBgm.play()
-        if (p && typeof p.then === 'function') {
-          p.catch(() => {
-            /* 無視 */
-          })
-        }
-      }
+    if (muted) {
+      this.synthBgmStop()
+    } else if (this.currentBgmKey === 'bgm-play') {
+      this.synthBgmPlay()
     }
     this.persist()
     for (const l of [...this.muteListeners]) l(muted)
@@ -341,13 +232,6 @@ export class SoundManager {
   // 内部ヘルパ
   // ----------------------------------------------------------------------
 
-  private stopFadeTimer(): void {
-    if (this.fadeTimer !== null) {
-      clearInterval(this.fadeTimer)
-      this.fadeTimer = null
-    }
-  }
-
   /**
    * SoundManager のリソースを解放する (N19)。
    *
@@ -361,17 +245,9 @@ export class SoundManager {
    * SoundManager を安全に破棄するための API として用意する。
    */
   destroy(): void {
-    this.stopFadeTimer()
-    if (this.currentBgm) {
-      try {
-        this.currentBgm.pause()
-        this.currentBgm.src = ''
-      } catch {
-        /* DOM 解放済み等は無視 */
-      }
-      this.currentBgm = null
-      this.currentBgmKey = null
-    }
+    this.synthBgmStop()
+    this.currentBgmKey = null
+    this.currentBgm = null
     this.muteListeners.clear()
     if (this.ctx !== null) {
       try {
@@ -382,11 +258,4 @@ export class SoundManager {
       this.ctx = null
     }
   }
-}
-
-function clamp01(v: number): number {
-  if (Number.isNaN(v)) return 0
-  if (v < 0) return 0
-  if (v > 1) return 1
-  return v
 }

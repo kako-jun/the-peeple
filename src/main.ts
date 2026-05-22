@@ -83,7 +83,7 @@ async function bootstrap(): Promise<void> {
   sceneManager.world.addChild(titleScene)
 
   // Stand Off (Play) シーン — startGame 呼び出し時に difficulty を指定して再生成。
-  let playScene = new PlayScene('NORMAL')
+  let playScene = new PlayScene('NORMAL', sound)
   playScene.x = SCENE_TRANSFORMS.play.x
   playScene.y = SCENE_TRANSFORMS.play.y
   sceneManager.world.addChild(playScene)
@@ -188,7 +188,7 @@ async function bootstrap(): Promise<void> {
     // Stand Off: difficulty を指定して PlayScene を再生成する。
     // reset() ではなく再生成することで difficulty 変更を確実に反映する。
     const oldPlay = playScene
-    const newPlay = new PlayScene(sel.difficulty)
+    const newPlay = new PlayScene(sel.difficulty, sound)
     newPlay.x = SCENE_TRANSFORMS.play.x
     newPlay.y = SCENE_TRANSFORMS.play.y
     setupPlayGameOver(newPlay)
