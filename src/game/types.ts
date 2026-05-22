@@ -74,6 +74,12 @@ export interface Char {
   angerRate: number
   /** 移動速度倍率 (1.0 = 標準)。 */
   speedMult: number
+  /**
+   * ミス扱いで退場したかどうか。
+   * true = anger 満タン退場 or 行列パンク退場 → スコア加算なし。
+   * false = 正常に用を足して退場 → スコア加算あり。
+   */
+  quitByMiss: boolean
 }
 
 // ---------------------------------------------------------------------------

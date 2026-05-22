@@ -118,6 +118,7 @@ export function updateGame(
           if (queueChars.length >= QUEUE_MAX) {
             // 行列に入れない → ミス扱いで即退場。
             missCount++
+            char.quitByMiss = true
             char.state = 'LEAVING'
             char.targetX = EXIT_X
             char.targetY = char.y
@@ -141,6 +142,7 @@ export function updateGame(
         if (char.anger >= 100) {
           // 怒って退場 → ミス。
           missCount++
+          char.quitByMiss = true
           char.state = 'LEAVING'
           char.targetX = EXIT_X
           char.targetY = char.y
@@ -177,9 +179,7 @@ export function updateGame(
         const exited = moveToward(char, deltaMS)
         if (exited) {
           // 正常退室のみスコア加算 (anger 退場・パンク退場は scoreDelta なし)。
-          // anger < 100 かつ useTimeRemaining <= 0 になって退室したキャラ = 正常。
-          // anger 100 は上の QUEUING で LEAVING 遷移させており anger===100。
-          if (char.anger < 100) {
+          if (!char.quitByMiss) {
             scoreGain++
           }
         }
@@ -334,6 +334,7 @@ export function spawnChar(elapsedMs: number = 0): Char {
     anger: 0,
     angerRate: params.angerRate,
     speedMult: params.speedMult,
+    quitByMiss: false,
   }
 }
 

@@ -132,6 +132,17 @@ describe('updateGame — 行列パンク', () => {
     expect(missCount).toBeGreaterThanOrEqual(1)
     expect(stats.misses).toBeGreaterThanOrEqual(1)
   })
+
+  it('パンク退場キャラはスコアを加算しない', () => {
+    const stats = createGameStats()
+    // ENTERING キャラが満員列に到着するよう十分な deltaMS を与える。
+    updateGame(chars, urinals, stats, 1000)
+    // 退場キャラが画面外に出るまで追加フレームを流す。
+    for (let i = 0; i < 10; i++) {
+      updateGame(chars, urinals, stats, 1000)
+    }
+    expect(stats.score).toBe(0)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -173,6 +184,7 @@ describe('updateGame — LEAVING → 退室完了', () => {
 
   it('anger 満タンで退室したキャラはスコアが加算されない', () => {
     chars[0].anger = 100
+    chars[0].quitByMiss = true
     const stats = createGameStats()
     updateGame(chars, urinals, stats, 200)
     expect(stats.score).toBe(0)
