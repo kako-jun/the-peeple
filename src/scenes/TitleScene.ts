@@ -28,19 +28,16 @@ import {
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { Difficulty, GameMode } from '../game/types'
-
-// ---------------------------------------------------------------------------
-// 公開型
-// ---------------------------------------------------------------------------
-
-export interface TitleSelection {
-  mode: GameMode
-  difficulty: Difficulty
-}
+import type { StorageAdapter } from '../game/StorageAdapter'
+import { loadHighscore } from '../game/highscore'
 
 // ---------------------------------------------------------------------------
 // ボタン定数
 // ---------------------------------------------------------------------------
+export interface TitleSelection {
+  mode: GameMode
+  difficulty: Difficulty
+}
 
 const START_BTN_W = 144
 const START_BTN_H = 52
@@ -117,22 +114,27 @@ export class TitleScene extends Container {
   private diffEntries: ToggleEntry<Difficulty>[] = []
   private startEntry!: StartEntry
   private subtitleText!: Text
+  private bestText: Text | null = null
 
   private readonly onStart: (sel: TitleSelection) => void
   private readonly soundManager: SoundManager | null
+  private readonly storage: StorageAdapter | undefined
 
   constructor(
     onStart: (sel: TitleSelection) => void,
-    soundManager: SoundManager | null = null
+    soundManager: SoundManager | null = null,
+    storage?: StorageAdapter
   ) {
     super()
     this.onStart = onStart
     this.soundManager = soundManager
+    this.storage = storage
 
     this.buildLogo()
     this.buildModeSection()
     this.buildDifficultySection()
     this.buildStartButton()
+    this.buildBestScore()
 
     this.eventMode = 'static'
     this.cursor = 'default'
@@ -347,6 +349,60 @@ export class TitleScene extends Container {
     this.addChild(g)
     this.addChild(t)
     this.drawStartButton()
+  }
+
+  private buildBestScore(): void {
+    if (!this.storage) return
+    const best = loadHighscore(this.storage)
+    if (best === 0) return
+
+    const bestText = new Text({
+      text: `BEST: ${best}`,
+      style: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: 12,
+        fill: UI_TEXT_DIM,
+        align: 'center',
+      },
+    })
+    bestText.anchor.set(0.5)
+    bestText.x = 0
+    bestText.y = START_BTN_Y + START_BTN_H / 2 + 16
+    this.bestText = bestText
+    this.addChild(bestText)
+  }
+
+  /** タイトルへ戻るたびに呼ぶ。BEST 表示を最新値に更新する。 */
+  updateBestScore(storage: StorageAdapter): void {
+    const best = loadHighscore(storage)
+    if (best === 0) {
+      // スコアがなければ非表示にする
+      if (this.bestText) {
+        this.removeChild(this.bestText)
+        this.bestText.destroy()
+        this.bestText = null
+      }
+      return
+    }
+
+    if (!this.bestText) {
+      const t = new Text({
+        text: `BEST: ${best}`,
+        style: {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 12,
+          fill: UI_TEXT_DIM,
+          align: 'center',
+        },
+      })
+      t.anchor.set(0.5)
+      t.x = 0
+      t.y = START_BTN_Y + START_BTN_H / 2 + 16
+      this.bestText = t
+      this.addChild(t)
+    } else {
+      this.bestText.text = `BEST: ${best}`
+    }
   }
 
   // -------------------------------------------------------------------------

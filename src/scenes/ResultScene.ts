@@ -21,6 +21,8 @@ import {
 } from '../constants/colors'
 import type { SoundManager } from '../audio/SoundManager'
 import type { GameStats } from '../game/types'
+import type { StorageAdapter } from '../game/StorageAdapter'
+import { isNewRecord, saveHighscore } from '../game/highscore'
 
 export type ResultKind = 'gameover' | 'clear'
 
@@ -28,6 +30,7 @@ export interface ResultSceneOptions {
   onRestart: () => void
   onTitle: () => void
   soundManager?: SoundManager | null
+  storage?: StorageAdapter
 }
 
 const HEADLINE_TEXT: Record<ResultKind, string> = {
@@ -106,7 +109,17 @@ export class ResultScene extends Container {
   setResult(opts: { kind: ResultKind; stats?: GameStats }): void {
     this.currentKind = opts.kind
     this.headline.text = HEADLINE_TEXT[opts.kind]
-    this.buildSummary(opts.stats)
+
+    // NEW RECORD チェック（storage と stats がある場合）。
+    let newRecord = false
+    if (opts.stats && this.opts.storage) {
+      if (isNewRecord(this.opts.storage, opts.stats.score)) {
+        saveHighscore(this.opts.storage, opts.stats.score)
+        newRecord = true
+      }
+    }
+
+    this.buildSummary(opts.stats, newRecord)
   }
 
   attachInputs(keyboard: KeyboardManager): () => void {
@@ -132,7 +145,7 @@ export class ResultScene extends Container {
   // サマリ生成 (#17)
   // -------------------------------------------------------------------------
 
-  private buildSummary(stats?: GameStats): void {
+  private buildSummary(stats?: GameStats, newRecord = false): void {
     // 既存の子をクリア。
     this.summaryContainer.removeChildren()
 
@@ -163,6 +176,25 @@ export class ResultScene extends Container {
     statsText.y = y
     this.summaryContainer.addChild(statsText)
     y += 28
+
+    // NEW RECORD! 表示。
+    if (newRecord) {
+      const newRecordText = new Text({
+        text: 'NEW RECORD!',
+        style: {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: 20,
+          fontWeight: '700',
+          fill: COMMENT_GOLD,
+          align: 'center',
+        },
+      })
+      newRecordText.anchor.set(0.5, 0)
+      newRecordText.x = 0
+      newRecordText.y = y
+      this.summaryContainer.addChild(newRecordText)
+      y += 30
+    }
 
     // 総評テキスト。
     const comment = this.generateComment(stats)
