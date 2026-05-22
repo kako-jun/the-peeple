@@ -347,7 +347,7 @@ describe('evaluateAssignment — スコアリングルール', () => {
     urinals[0].state = 'OCCUPIED'
     urinals[0].occupantId = 99
     urinals[1].state = 'OCCUPIED'
-    const groupChar = { type: 'GROUP' } as import('./types').Char
+    const groupChar = { type: 'GROUP' } as Char
     const { rules } = evaluateAssignment(1, urinals, groupChar)
     const ids = rules.map(r => r.ruleId)
     expect(ids).not.toContain('SAME_COLUMN_TABOO')
@@ -355,7 +355,7 @@ describe('evaluateAssignment — スコアリングルール', () => {
 
   it('GROUP: 隣に人がいない場合は通常通り NO_NEIGHBOR が適用される', () => {
     urinals[1].state = 'OCCUPIED'
-    const groupChar = { type: 'GROUP' } as import('./types').Char
+    const groupChar = { type: 'GROUP' } as Char
     const { rules } = evaluateAssignment(1, urinals, groupChar)
     const ids = rules.map(r => r.ruleId)
     expect(ids).toContain('NO_NEIGHBOR')
@@ -367,7 +367,7 @@ describe('evaluateAssignment — スコアリングルール', () => {
     urinals[0].state = 'OCCUPIED'
     urinals[0].occupantId = 99
     urinals[1].state = 'OCCUPIED'
-    const drunkChar = { type: 'DRUNK' } as import('./types').Char
+    const drunkChar = { type: 'DRUNK' } as Char
     const { rules } = evaluateAssignment(1, urinals, drunkChar)
     const ids = rules.map(r => r.ruleId)
     expect(ids).toContain('SAME_COLUMN_TABOO')

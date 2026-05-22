@@ -81,10 +81,10 @@ export function evaluateAssignment(
     total += r.scoreDelta
   } else {
     // 直接隣（distance=1）に人がいる = タブー。
-    // GROUP タイプは団体客なので隣接ペナルティを免除する。
     // NEIGHBOR_EMPTY は「1つ空けた (distance ≥ 2)」が理想だが
     // 4台構成では両隣が必ず distance=1 のため適用対象なし。
     // 直接隣接ペナルティとして SAME_COLUMN_TABOO を適用する。
+    // ただし GROUP タイプは団体客なので隣接ペナルティを免除する。
     if (char?.type !== 'GROUP') {
       const r = applyRule('SAME_COLUMN_TABOO', urinalId)
       applied.push(r)
